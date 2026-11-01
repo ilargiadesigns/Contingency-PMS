@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Contingencia para OPERA</title>
+<style>
+  :root{
+    --ink:#1B2430;
+    --ink-soft:#2B3646;
+    --paper:#F3F6F6;
+    --paper-card:#FFFFFF;
+    --line:#DCE2E2;
+    --muted:#5B6670;
+    --accent:#1B7A72;
+    --accent-soft:#E4F1EF;
+    --clean:#2E8B57;
+    --clean-bg:#E7F4EC;
+    --dirty:#B54B36;
+    --dirty-bg:#FBEAE6;
+    --inspected:#2C6FB0;
+    --inspected-bg:#E7EFF8;
+    --pickup:#8A5FB8;
+    --pickup-bg:#F0E9F7;
+    --oos:#6B7280;
+    --oos-bg:#EBECEE;
+    --blocked:#6B4FA0;
+    --blocked-bg:#EEE9F6;
+    --warn:#B5842F;
+    --warn-bg:#FBF2E2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px;
+    line-height:1.45;
+  }
+  header{
+    background:var(--ink);
+    color:#EDEFF1;
+    padding:18px 22px 14px;
+  }
+  header .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  header .brand h1{
+    font-size:19px;
+    margin:0;
+    font-weight:650;
+    letter-spacing:0.2px;
+  }
+  header .brand span.sub{
+    color:#9AA6B2;
+    font-size:12.5px;
+  }
+  .status-strip{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+  .file-chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--ink-soft);
+    border:1px solid #3A4658;
+    border-radius:7px;
+    padding:7px 11px;
+    font-size:12.5px;
+  }
+  .file-chip .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:#5C697A;
+    flex-shrink:0;
+  }
+  .file-chip.loaded .dot{background:#4FBF8B;}
+  .file-chip.loaded{border-color:#3E7A5F;}
+  .file-chip label{
+    cursor:pointer;
+    color:#D8DEE5;
+  }
+  .file-chip input{display:none;}
+  .file-chip .meta{color:#8F9BA8;font-size:11.5px;}
+
+  nav.tabs{
+    display:flex;
+    gap:2px;
+    background:var(--paper-card);
+    border-bottom:1px solid var(--line);
+    padding:0 18px;
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+  nav.tabs button{
+    border:none;
+    background:transparent;
+    padding:13px 16px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    border-bottom:2.5px solid transparent;
+  }
+  nav.tabs button.active{
+    color:var(--accent);
+    border-bottom-color:var(--accent);
+  }
+  nav.tabs button .count{
+    font-weight:500;
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  main{
+    padding:18px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .toolbar input[type=text]{
+    padding:8px 11px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    min-width:220px;
+    background:var(--paper-card);
+  }
+  .daychip{
+    padding:7px 13px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    background:var(--paper-card);
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+  }
+  .daychip.active{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+  .filterchip{
+    padding:6px 12px;
+    border-radius:99px;
+    border:1px solid var(--line);
+    background:var(--paper-card);
+    cursor:pointer;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--muted);
+  }
+  .filterchip.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+
+  .empty-state{
+    padding:50px 20px;
+    text-align:center;
+    color:var(--muted);
+    background:var(--paper-card);
+    border:1px dashed var(--line);
+    border-radius:10px;
+  }
+  .empty-state b{color:var(--ink);}
+
+  .legend{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .legend .item{display:flex;align-items:center;gap:6px;}
+  .legend .swatch{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+
+  .summary-line{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:12px;
+  }
+  .summary-line b{color:var(--ink);}
+
+  .floor-group{margin-bottom:18px;}
+  .floor-group h3{
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--muted);
+    margin:0 0 8px 2px;
+    font-weight:700;
+  }
+  .room-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(128px,1fr));
+    gap:8px;
+  }
+  .room-card{
+    border-radius:8px;
+    border:1px solid var(--line);
+    padding:8px 10px;
+    background:var(--paper-card);
+    min-height:64px;
+    cursor:pointer;
+    transition:box-shadow .12s ease, border-color .12s ease;
+  }
+  .room-card:hover{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent) inset;
+  }
+  .manual-badge{
+    display:inline-block;
+    font-size:9px;
+    font-weight:700;
+    color:var(--accent);
+    background:#fff;
+    border:1px solid var(--accent);
+    padding:1px 5px;
+    border-radius:4px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
+  .manual-note{
+    font-size:10.5px;
+    color:var(--accent);
+    margin-top:3px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .t120-badge{
+    display:inline-block;
+    font-size:8.5px;
+    font-weight:700;
+    color:var(--oos);
+    background:#fff;
+    border:1px solid var(--oos);
+    padding:1px 4px;
+    border-radius:4px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
+  .room-card .room-no{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-weight:700;
+    font-size:14px;
+  }
+  .room-card .room-type{
+    font-size:10.5px;
+    color:var(--muted);
+    font-weight:600;
+    margin-left:4px;
+  }
+  .room-card .status-tag{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:5px;
+    margin-top:5px;
+  }
+  .room-card .guest{
+    font-size:12px;
+    margin-top:5px;
+    color:var(--ink);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .room-card .in-badge{
+    font-size:9.5px;
+    font-weight:700;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:1px 5px;
+    border-radius:4px;
+    margin-left:4px;
+  }
+  .st-CL{background:var(--clean-bg);color:var(--clean);}
+  .st-DI{background:var(--dirty-bg);color:var(--dirty);}
+  .st-IP{background:var(--inspected-bg);color:var(--inspected);}
+  .st-PU{background:var(--pickup-bg);color:var(--pickup);}
+  .st-OS{background:var(--oos-bg);color:var(--oos);}
+  .st-BL{background:var(--blocked-bg);color:var(--blocked);}
+  .room-card.border-CL{border-color:var(--clean);}
+  .room-card.border-DI{border-color:var(--dirty);}
+  .room-card.border-IP{border-color:var(--inspected);}
+  .room-card.border-PU{border-color:var(--pickup);}
+  .room-card.border-OS{border-color:var(--oos);}
+  .room-card.border-BL{border-color:var(--blocked);}
+  .room-card.manual{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+
+  /* ---- modal ---- */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(17,22,29,0.45);
+    z-index:50;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    background:#fff;
+    border-radius:12px;
+    padding:20px;
+    width:100%;
+    max-width:380px;
+    box-shadow:0 12px 34px rgba(0,0,0,0.22);
+  }
+  .modal-box h3{margin:0 0 2px;font-size:16px;}
+  .modal-box .modal-sub{color:var(--muted);font-size:12.5px;margin-bottom:14px;}
+  .status-choice-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:7px;
+    margin-bottom:12px;
+  }
+  .status-choice{
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:9px 8px;
+    text-align:center;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    background:var(--paper-card);
+  }
+  .status-choice.selected{border-color:currentColor;}
+  .modal-box textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:8px;
+    font-size:13px;
+    font-family:inherit;
+    resize:vertical;
+    min-height:52px;
+    margin-bottom:14px;
+  }
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .modal-actions button{
+    border:none;
+    border-radius:7px;
+    padding:8px 14px;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .modal-btn{
+    border:none;
+    border-radius:7px;
+    padding:8px 14px;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .assign-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .assign-info{
+    background:var(--paper);
+    border-radius:8px;
+    padding:11px;
+    font-size:13px;
+    margin-bottom:12px;
+  }
+  .assign-info b{display:block;margin-bottom:2px;}
+  .btn-cancel{background:var(--paper);color:var(--muted);}
+  .btn-revert{background:var(--dirty-bg);color:var(--dirty);}
+  .btn-save{background:var(--accent);color:#fff;}
+  .btn-save:disabled{opacity:0.4;cursor:default;}
+  .candidate-list{
+    max-height:280px;
+    overflow-y:auto;
+    margin-bottom:12px;
+  }
+  .candidate-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 11px;
+    margin-bottom:6px;
+    cursor:pointer;
+  }
+  .candidate-item:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .candidate-item .cand-room{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;}
+  .candidate-item .cand-warn{color:var(--warn);font-size:11px;}
+  .candidate-item .cand-type{font-size:11px;color:var(--muted);}
+  .candidate-empty{color:var(--muted);font-size:13px;padding:14px 4px;}
+
+  .trace-card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--warn);
+    border-radius:8px;
+    padding:11px 13px;
+    margin-bottom:9px;
+  }
+  .trace-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:8px;
+    margin-bottom:5px;
+    flex-wrap:wrap;
+  }
+  .trace-room{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;}
+  .trace-guest{font-weight:700;}
+  .trace-dates{font-size:11.5px;color:var(--muted);}
+  .trace-dept{
+    display:inline-block;
+    font-size:10px;
+    font-weight:700;
+    padding:1px 7px;
+    border-radius:99px;
+    background:var(--warn-bg);
+    color:var(--warn);
+  }
+  .trace-text{
+    font-size:13px;
+    white-space:pre-wrap;
+    color:var(--ink);
+  }
+  .trace-badge{
+    display:inline-block;
+    font-size:9px;
+    font-weight:700;
+    color:var(--warn);
+    background:#fff;
+    border:1px solid var(--warn);
+    padding:1px 4px;
+    border-radius:4px;
+    margin-left:4px;
+    vertical-align:middle;
+    cursor:help;
+  }
+
+  #shift-modal-body h4{font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin:14px 0 6px;}
+  #shift-modal-body h4:first-child{margin-top:0;}
+  #shift-modal-body ul{margin:0; padding-left:18px;}
+  #shift-modal-body li{margin-bottom:3px;}
+  #shift-modal-body .shift-none{color:var(--muted); font-style:italic;}
+
+  @media print{
+    header, nav.tabs, main, footer{ display:none !important; }
+    .modal-overlay#shift-modal{
+      position:static !important;
+      background:none !important;
+      padding:0 !important;
+      display:block !important;
+    }
+    .modal-overlay#shift-modal .modal-box{
+      box-shadow:none !important;
+      max-width:none !important;
+      width:100% !important;
+    }
+    #shift-modal-body{ max-height:none !important; overflow:visible !important; }
+    #shift-modal .modal-actions{ display:none !important; }
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    font-size:13px;
+  }
+  thead th{
+    text-align:left;
+    background:#EEF1F1;
+    padding:9px 10px;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--muted);
+    font-weight:700;
+    border-bottom:1px solid var(--line);
+  }
+  tbody td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FAFBFB;}
+  .room-num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;}
+  .badge{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:5px;
+  }
+  .badge-unassigned{background:var(--dirty-bg);color:var(--dirty);}
+  .badge-vip{background:var(--warn-bg);color:var(--warn);}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);}
+  .badge-balance{background:var(--dirty-bg);color:var(--dirty);font-weight:700;}
+  .badge-ok{background:var(--clean-bg);color:var(--clean);}
+  .muted{color:var(--muted);}
+  tr.flag-unassigned{background:#FBEAE6;}
+  tr.flag-unassigned:hover{background:#F8DFDA;}
+
+  .backup-row{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    margin-top:16px;
+    font-size:12.5px;
+  }
+  .backup-row button, .backup-row label{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 12px;
+    cursor:pointer;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .backup-row input{display:none;}
+
+  /* ---------- v. pública: cabecera, bienvenida, toasts, ajustes ---------- */
+  .header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .hbtn{
+    background:var(--ink-soft);color:#D8DEE5;border:1px solid #3A4658;
+    border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:600;
+    cursor:pointer;font-family:inherit;
+  }
+  .hbtn:hover{border-color:#7B8A9E;}
+  .hbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .file-chip{opacity:.8;}
+  .file-chip.loaded{opacity:1;}
+  .file-chip .opt{color:#8F9BA8;font-size:11px;}
+
+  .welcome{display:none;max-width:860px;margin:10px auto 0;}
+  body.no-data .welcome{display:block;}
+  body.no-data nav.tabs, body.no-data .panel{display:none !important;}
+  .welcome h2{font-size:22px;margin:6px 0 6px;}
+  .welcome .lead{color:var(--muted);font-size:14.5px;margin:0 0 4px;}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:18px 0;padding:0;list-style:none;}
+  .steps li{background:var(--paper-card);border:1px solid var(--line);border-radius:10px;padding:14px 14px 12px;}
+  .steps .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;font-weight:700;margin-bottom:6px;}
+  .steps b{display:block;margin-bottom:3px;}
+  .steps span{color:var(--muted);font-size:13px;}
+  .dropzone{
+    border:2px dashed var(--accent);background:var(--accent-soft);border-radius:12px;
+    padding:30px 16px;text-align:center;cursor:pointer;
+  }
+  .dropzone:hover, .dropzone.over{background:#D2E8E4;}
+  .dropzone .big{font-size:16px;font-weight:700;color:var(--accent);}
+  .dropzone .small{color:var(--muted);font-size:12.5px;margin-top:4px;}
+  .welcome-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 8px;}
+  .welcome-actions .modal-btn{background:#fff;border:1px solid var(--line);}
+  .welcome-actions .modal-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .welcome .privacy{font-size:12.5px;color:var(--muted);background:var(--paper-card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:14px;}
+  .linkbtn{background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit;padding:0;}
+
+  #demo-banner{display:none;background:var(--warn-bg);color:var(--warn);padding:8px 22px;font-size:13px;font-weight:600;}
+  #demo-banner.show{display:block;}
+  #demo-banner button{margin-left:10px;}
+
+  #dropveil{
+    display:none;position:fixed;inset:0;z-index:90;pointer-events:none;
+    background:rgba(27,122,114,0.82);color:#fff;align-items:center;justify-content:center;
+    font-size:22px;font-weight:700;
+  }
+  #dropveil.show{display:flex;}
+  #toasts{position:fixed;right:16px;bottom:16px;z-index:100;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 32px));}
+  .toast{background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);border-left:4px solid #4FBF8B;}
+  .toast.err{border-left-color:#E0705A;}
+  .toast.warn{border-left-color:#E0B24F;}
+
+  .modal-box.wide{max-width:680px;max-height:88vh;overflow-y:auto;}
+  .guide-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;}
+  .guide-item h4{margin:0 0 3px;font-size:14px;}
+  .guide-item .tagreq{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:99px;margin-left:6px;}
+  .guide-item .tagreq.req{background:var(--clean-bg);color:var(--clean);}
+  .guide-item .tagreq.opt{background:var(--oos-bg);color:var(--oos);}
+  .guide-item code{font-size:11.5px;background:var(--paper);padding:1px 4px;border-radius:4px;word-break:break-word;}
+  .guide-steps{padding-left:20px;margin:8px 0 14px;}
+  .guide-steps li{margin-bottom:3px;}
+  .guide-note{background:var(--warn-bg);color:#6E5320;border-radius:8px;padding:9px 12px;font-size:12.5px;margin:10px 0;}
+  .set-sec{margin-bottom:18px;}
+  .set-sec h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+  .set-sec label.opt{display:block;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:13px;}
+  .set-sec label.opt input{margin-right:8px;}
+  .set-sec label.opt small{display:block;color:var(--muted);margin-left:24px;}
+  .set-sec .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .set-sec .row label.modal-btn{cursor:pointer;}
+  .set-sec input[type=file]{display:none;}
+  .about{font-size:12px;color:var(--muted);line-height:1.5;}
+  @media print{ #toasts, #dropveil, #demo-banner{display:none !important;} }
+
+  @media (max-width:640px){
+    .room-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tbody tr{border-bottom:6px solid var(--paper);padding:8px 0;}
+    tbody td{border:none;padding:3px 12px;}
+    tbody td:before{
+      content:attr(data-label);
+      font-weight:700;
+      color:var(--muted);
+      font-size:10.5px;
+      text-transform:uppercase;
+      display:block;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Panel de Contingencia</h1>
+    <span class="sub">Para seguir trabajando cuando OPERA no está disponible · funciona sin conexión</span>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn primary" id="btn-load" type="button">📂 Cargar informes</button>
+    <input type="file" id="file-any" multiple accept=".txt,.tsv,.csv,.dat,text/plain" hidden>
+    <button class="hbtn" id="shift-summary-btn" type="button">📋 Resumen de turno</button>
+    <button class="hbtn" id="btn-guide" type="button">❓ Cómo exportar los informes</button>
+    <button class="hbtn" id="btn-settings" type="button">⚙ Datos y ajustes</button>
+  </div>
+  <div class="status-strip" id="status-strip">
+    <div class="file-chip" id="chip-rooms" title="Plano de habitaciones (Room Plan)"><span class="dot"></span><span>Habitaciones</span><span class="meta" id="meta-rooms"></span></div>
+    <div class="file-chip" id="chip-arrivals" title="Llegadas"><span class="dot"></span><span>Llegadas</span><span class="meta" id="meta-arrivals"></span></div>
+    <div class="file-chip" id="chip-departures" title="Salidas"><span class="dot"></span><span>Salidas</span><span class="meta" id="meta-departures"></span></div>
+    <div class="file-chip" id="chip-t120" title="Estado real de housekeeping (Room Status)"><span class="dot"></span><span>Estado real HK</span><span class="meta" id="meta-t120"></span></div>
+    <div class="file-chip" id="chip-traces" title="Avisos / Traces"><span class="dot"></span><span>Avisos</span><span class="meta" id="meta-traces"></span></div>
+  </div>
+</header>
+
+<div id="demo-banner">Estás viendo datos de EJEMPLO totalmente ficticios. <button class="hbtn" id="btn-exit-demo" type="button">Salir del ejemplo</button></div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-panel="panel-rooms">Habitaciones <span class="count" id="count-rooms"></span></button>
+  <button class="tab-btn" data-panel="panel-arrivals">Llegadas <span class="count" id="count-arrivals"></span></button>
+  <button class="tab-btn" data-panel="panel-departures">Salidas <span class="count" id="count-departures"></span></button>
+  <button class="tab-btn" data-panel="panel-housekeeping">Housekeeping <span class="count" id="count-housekeeping"></span></button>
+  <button class="tab-btn" data-panel="panel-avisos">Avisos <span class="count" id="count-avisos"></span></button>
+</nav>
+
+<main>
+
+  <!-- BIENVENIDA (solo mientras no hay datos cargados) -->
+  <section class="welcome" id="welcome">
+    <h2>Bienvenido 👋</h2>
+    <p class="lead">Si OPERA se cae, aquí puedes seguir viendo el hotel, asignar habitaciones, dar check-in y check-out y avisar a housekeeping, usando los informes que hayas exportado antes (o que exportes desde otro equipo).</p>
+    <ol class="steps">
+      <li><span class="n">1</span><b>Exporta los informes</b><span>Desde OPERA, en formato <i>Delimited Data</i> (.txt). Solo el plano de habitaciones es imprescindible. <button class="linkbtn" data-act="guide" type="button">Ver cómo</button></span></li>
+      <li><span class="n">2</span><b>Cárgalos aquí</b><span>Arrastra los ficheros a esta página o pulsa el botón. La app reconoce cada informe por sí sola.</span></li>
+      <li><span class="n">3</span><b>Trabaja</b><span>Toca una habitación, una llegada o una salida. Al volver OPERA, el «Resumen de turno» te dice qué tienes que pasar al sistema.</span></li>
+    </ol>
+    <div class="dropzone" id="dropzone" tabindex="0" role="button">
+      <div class="big">Arrastra aquí tus ficheros .txt</div>
+      <div class="small">o haz clic para elegirlos (puedes seleccionar varios a la vez)</div>
+    </div>
+    <div class="welcome-actions">
+      <button class="modal-btn btn-cancel" id="btn-demo" type="button">Probar con datos de ejemplo</button>
+      <button class="modal-btn btn-cancel" data-act="guide" type="button">Guía de informes</button>
+    </div>
+    <div class="privacy">🔒 <b>Tus datos no salen de tu equipo.</b> La app no envía nada a internet: los ficheros se leen en tu navegador y se pierden al cerrar la pestaña (salvo que descargues una copia de seguridad). Al terminar, usa «Datos y ajustes → Borrar todos los datos». Esta herramienta <b>no escribe en OPERA</b>.</div>
+  </section>
+
+  <!-- HABITACIONES -->
+  <section class="panel active" id="panel-rooms">
+    <div id="rooms-empty" class="empty-state">
+      Aún no has cargado el <b>plano de habitaciones</b>. <button class="linkbtn" data-act="load" type="button">Cargar informes</button> · <button class="linkbtn" data-act="guide" type="button">Cómo exportarlo</button>
+    </div>
+    <div id="rooms-content" style="display:none;">
+      <div class="toolbar" id="day-tabs"></div>
+      <div class="toolbar">
+        <input type="text" id="rooms-search" placeholder="Buscar habitación o huésped...">
+      </div>
+      <div class="toolbar">
+        <button class="filterchip active" data-roomsfilter="all">Todas</button>
+        <button class="filterchip" data-roomsfilter="manual">Actualizadas a mano</button>
+      </div>
+      <div class="legend">
+        <div class="item"><span class="swatch" style="background:var(--clean)"></span>Limpia</div>
+        <div class="item"><span class="swatch" style="background:var(--dirty)"></span>Sucia</div>
+        <div class="item"><span class="swatch" style="background:var(--inspected)"></span>Inspeccionada</div>
+        <div class="item"><span class="swatch" style="background:var(--pickup)"></span>Pick-up</div>
+        <div class="item"><span class="swatch" style="background:var(--oos)"></span>Fuera de servicio</div>
+        <div class="item"><span class="swatch" style="background:var(--blocked)"></span>Bloqueada</div>
+        <div class="item"><span class="in-badge">IN</span>huésped alojado</div>
+        <div class="item"><span class="manual-badge">✓</span>actualizada a mano</div>
+        <div class="item"><span class="t120-badge">T120</span>confirmada por estado real</div>
+      </div>
+      <div class="summary-line" id="rooms-summary"></div>
+      <div class="summary-line muted">Toca una habitación para cambiar su estado a mano (útil cuando housekeeping te avisa por teléfono).</div>
+      <div id="rooms-grid"></div>
+    </div>
+  </section>
+
+  <!-- LLEGADAS -->
+  <section class="panel" id="panel-arrivals">
+    <div id="arrivals-empty" class="empty-state">
+      Aún no has cargado el informe de <b>llegadas</b>. <button class="linkbtn" data-act="load" type="button">Cargar informes</button> · <button class="linkbtn" data-act="guide" type="button">Cómo exportarlo</button>
+    </div>
+    <div id="arrivals-content" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="arrivals-search" placeholder="Buscar habitación, huésped o empresa...">
+        <button class="filterchip active" data-filter="all">Todas</button>
+        <button class="filterchip" data-filter="unassigned">Sin asignar</button>
+        <button class="filterchip" data-filter="vip">VIP</button>
+        <button class="filterchip" data-filter="assigned">Asignadas</button>
+      </div>
+      <div class="summary-line" id="arrivals-summary"></div>
+      <div class="summary-line muted">Toca una llegada para ver las habitaciones libres y listas donde asignarla (check-in de contingencia).</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Habitación</th><th>Huésped</th><th>Hora</th><th>Tipo</th>
+            <th>Pax</th><th>VIP</th><th>Empresa / Grupo</th><th>Garantía</th>
+            <th>Confirmación</th><th>Peticiones</th>
+          </tr>
+        </thead>
+        <tbody id="arrivals-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SALIDAS -->
+  <section class="panel" id="panel-departures">
+    <div id="departures-empty" class="empty-state">
+      Aún no has cargado el informe de <b>salidas</b>. <button class="linkbtn" data-act="load" type="button">Cargar informes</button> · <button class="linkbtn" data-act="guide" type="button">Cómo exportarlo</button>
+    </div>
+    <div id="departures-content" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="departures-search" placeholder="Buscar habitación, huésped o empresa...">
+        <button class="filterchip active" data-filter="all">Todas</button>
+        <button class="filterchip" data-filter="balance">Con balance</button>
+        <button class="filterchip" data-filter="notcheckedin">Sin check-in</button>
+      </div>
+      <div class="summary-line" id="departures-summary"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Habitación</th><th>Huésped</th><th>Noches</th><th>Llegada</th>
+            <th>Balance</th><th>Estado</th><th>VIP</th><th>Empresa / Grupo</th>
+          </tr>
+        </thead>
+        <tbody id="departures-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- HOUSEKEEPING -->
+  <section class="panel" id="panel-housekeeping">
+    <div id="hk-empty" class="empty-state">
+      Aún no has cargado el <b>plano de habitaciones</b>. <button class="linkbtn" data-act="load" type="button">Cargar informes</button> · <button class="linkbtn" data-act="guide" type="button">Cómo exportarlo</button>
+    </div>
+    <div id="hk-content" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="hk-search" placeholder="Buscar habitación...">
+      </div>
+      <div class="toolbar">
+        <button class="filterchip active" data-hkfilter="all">Todas</button>
+        <button class="filterchip" data-hkfilter="DI">Sucia</button>
+        <button class="filterchip" data-hkfilter="PU">Pick-up</button>
+        <button class="filterchip" data-hkfilter="CL">Limpia</button>
+        <button class="filterchip" data-hkfilter="IP">Inspeccionada</button>
+        <button class="filterchip" data-hkfilter="vacant">Vacías</button>
+        <button class="filterchip" data-hkfilter="occupied">Con cliente</button>
+      </div>
+      <div class="summary-line" id="hk-summary"></div>
+      <div class="summary-line muted">Toca una habitación para cambiar su estado — en cuanto esté lista (según el criterio de «Datos y ajustes») quedará disponible para asignar en Llegadas.</div>
+      <div id="hk-grid"></div>
+    </div>
+  </section>
+
+  <!-- AVISOS -->
+  <section class="panel" id="panel-avisos">
+    <div id="avisos-empty" class="empty-state">
+      Aún no has cargado el informe de <b>avisos (traces)</b>. <button class="linkbtn" data-act="load" type="button">Cargar informes</button> · <button class="linkbtn" data-act="guide" type="button">Cómo exportarlo</button>
+    </div>
+    <div id="avisos-content" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="avisos-search" placeholder="Buscar habitación, huésped o texto...">
+      </div>
+      <div class="toolbar" id="avisos-dept-chips"></div>
+      <div class="summary-line" id="avisos-summary"></div>
+      <div id="avisos-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal-overlay" id="shift-modal">
+  <div class="modal-box" style="max-width:540px;">
+    <h3>Resumen de turno</h3>
+    <div class="modal-sub" id="shift-modal-sub"></div>
+    <div id="shift-modal-body" style="max-height:55vh; overflow-y:auto; font-size:13px;"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="shift-cancel">Cerrar</button>
+      <button class="btn-save" id="shift-print">Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<footer style="text-align:right; padding:10px 22px 18px; font-size:11.5px; color:#8793A0;">
+  Herramienta independiente, gratuita y de código abierto (MIT). No afiliada a Oracle; OPERA es marca registrada de Oracle.<br>
+  © <span id="footer-year"></span> Joan Cuevas
+</footer>
+
+<div class="modal-overlay" id="guide-modal">
+  <div class="modal-box wide">
+    <h3>Cómo exportar los informes desde OPERA</h3>
+    <div class="modal-sub">Todos se exportan igual. La app reconoce cada informe por sus columnas, no por el nombre del fichero.</div>
+    <ol class="guide-steps">
+      <li>En OPERA abre el menú de <b>informes</b> (Reports) y ejecuta el informe.</li>
+      <li>Como destino/salida (<i>Output</i>) elige <b>Delimited Data</b> (datos delimitados) en lugar de impresora o PDF.</li>
+      <li>Guarda el resultado como fichero <b>.txt</b> (la separación debe ser por tabulador, que es la opción por defecto).</li>
+      <li>Arrastra los ficheros a esta página, o pulsa «Cargar informes».</li>
+    </ol>
+    <div class="guide-note">Los nombres y códigos exactos de los informes (y su ubicación en los menús) pueden variar según la versión de OPERA y la configuración de tu hotel. Si tu hotel usa otro informe equivalente, vale mientras incluya las columnas indicadas. Un PDF o un Excel <b>no</b> sirven: tiene que ser Delimited Data.</div>
+    <div id="guide-list"></div>
+    <div class="guide-note">💡 <b>Consejo:</b> exporta el plano de habitaciones <b>empezando hoy</b> y con una semana por delante; así la app puede comprobar que una habitación esté libre durante toda la estancia. Y prepara los informes <b>antes</b> de necesitarlos: si OPERA ya está caído, no podrás sacarlos.</div>
+    <div class="modal-actions"><button class="btn-save" id="guide-close" type="button">Entendido</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-box wide">
+    <h3>Datos y ajustes</h3>
+    <div class="modal-sub">Todo se guarda solo en esta pestaña del navegador.</div>
+
+    <div class="set-sec">
+      <h4>¿Cuándo se puede asignar o dar check-in a una habitación?</h4>
+      <label class="opt"><input type="radio" name="ready" value="ip"> Solo si está <b>Inspeccionada</b><small>Lo más estricto. Úsalo si tu hotel inspecciona todas las habitaciones.</small></label>
+      <label class="opt"><input type="radio" name="ready" value="clip"> Si está <b>Limpia o Inspeccionada</b><small>Para hoteles que no usan el estado Inspeccionada.</small></label>
+      <label class="opt"><input type="radio" name="ready" value="any"> <b>Cualquiera</b> menos fuera de servicio / bloqueada<small>No exige limpieza; el control lo haces tú.</small></label>
+    </div>
+
+    <div class="set-sec">
+      <h4>Copia de seguridad</h4>
+      <div class="row">
+        <button class="modal-btn btn-save" id="export-backup" type="button">Descargar copia (.json)</button>
+        <label class="modal-btn btn-cancel" for="import-backup">Importar copia (.json)</label>
+        <input type="file" id="import-backup" accept=".json,application/json">
+      </div>
+      <div class="about" style="margin-top:6px;">La copia incluye datos de huéspedes y tus cambios manuales. Guárdala en un lugar seguro y bórrala cuando ya no la necesites.</div>
+    </div>
+
+    <div class="set-sec">
+      <h4>Privacidad</h4>
+      <div class="row"><button class="modal-btn btn-revert" id="btn-clear" type="button">Borrar todos los datos</button></div>
+      <div class="about" style="margin-top:6px;">Elimina de la memoria del navegador todos los informes cargados y los cambios hechos. Recomendado al terminar el turno en un equipo compartido.</div>
+    </div>
+
+    <div class="set-sec about">
+      <h4>Acerca de</h4>
+      Panel de Contingencia para OPERA · versión <span id="app-version"></span> · licencia MIT.<br>
+      No se conecta a OPERA ni a internet: solo lee los ficheros que tú le das y <b>no escribe nada en OPERA</b>. Cuando el sistema vuelva, usa el «Resumen de turno» para pasar a OPERA los check-in, check-out y cambios de estado hechos en contingencia.<br>
+      Herramienta independiente, no afiliada, patrocinada ni respaldada por Oracle. OPERA es marca registrada de Oracle.
+    </div>
+    <div class="modal-actions"><button class="btn-save" id="settings-close" type="button">Cerrar</button></div>
+  </div>
+</div>
+
+<div id="dropveil">Suelta los ficheros para cargarlos</div>
+<div id="toasts" aria-live="polite"></div>
+
+<div class="modal-overlay" id="room-modal">
+  <div class="modal-box">
+    <h3 id="modal-room-title">Habitación</h3>
+    <div class="modal-sub" id="modal-room-sub"></div>
+    <div class="status-choice-grid" id="modal-status-grid"></div>
+    <textarea id="modal-note" placeholder="Nota (opcional) — ej. &quot;Avisa María de housekeeping, 16:40&quot;"></textarea>
+    <div class="modal-actions">
+      <button class="btn-revert" id="modal-revert" style="display:none;">Quitar cambio manual</button>
+      <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+      <button class="btn-save" id="modal-save" disabled>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal-box">
+    <h3 id="assign-title">Asignar habitación</h3>
+    <div class="modal-sub" id="assign-sub"></div>
+    <div id="assign-uncovered" class="modal-sub" style="color:var(--warn);display:none;"></div>
+    <div id="assign-body"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="assign-cancel">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="departure-modal">
+  <div class="modal-box">
+    <h3 id="departure-title">Dar de out</h3>
+    <div class="modal-sub" id="departure-sub"></div>
+    <div id="departure-body"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="departure-cancel">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const fy = document.getElementById("footer-year");
+  if(fy) fy.textContent = new Date().getFullYear();
+
+  const state = {
+    rooms: [],        // filas del plano de habitaciones
+    arrivals: [],
+    departures: [],
+    t120: {},          // room -> {status, blocked, roomType}
+    activeDay: null,
+    overrides: {},    // key "room|charD" -> {status, note, updatedAt}
+    checkins: {},     // key "room|charD" -> {guest, confirmation, assignedAt}
+    roomsFilter: "all",
+    traces: [],
+    files: {},        // tipo de informe -> nombre del fichero cargado
+    dateFmt: {order:"DMY", sep:"-", yl:2},
+    settings: {ready:"ip"},   // ip | clip | any
+    demo: false
+  };
+
+  const APP_VERSION = "1.0";
+  const REPORTS = {
+    rooms:{
+      title:"Plano de habitaciones (Room Plan)", req:true,
+      what:"El tablero del hotel: estado de cada habitación y huésped alojado, día a día.",
+      hint:"Código habitual: RESROOMPLAN. Pide desde hoy y una semana por delante.",
+      cols:"ROOM, ROOM_TYPE, ROOM_STATUS, ORA_DATE, CHAR_D, DAY, GUEST"
+    },
+    arrivals:{
+      title:"Llegadas", req:false,
+      what:"Reservas que llegan hoy, para asignarles habitación y darles check-in.",
+      hint:"Por ejemplo el informe de llegadas detallado (B104 o Reservation Detail).",
+      cols:"CONFIRMATION_NO, FULL_NAME_NO_SHR_IND, ROOM_NO, ARRIVAL, DEPARTURE, ROOM_CATEGORY_LABEL, RESV_NAME_ID"
+    },
+    departures:{
+      title:"Salidas", req:false,
+      what:"Reservas que salen hoy, con su balance, para darles de out.",
+      hint:"Por ejemplo el informe de salidas (departures).",
+      cols:"GUEST_NAME, ROOM, NIGHTS, ARRIVAL, BALANCE, RESV_STATUS"
+    },
+    t120:{
+      title:"Estado real de habitaciones (Room Status / T120)", req:false,
+      what:"El estado de housekeeping real de ahora mismo; tiene prioridad sobre el del plano.",
+      hint:"Por ejemplo el informe de estado de habitaciones (T120).",
+      cols:"ROOM, ROOM_TYPE, ROOM_STATUS, ROOM_RESV_STATUS_DESC"
+    },
+    traces:{
+      title:"Avisos (Traces)", req:false,
+      what:"Avisos de reserva por departamento, enlazados con las llegadas.",
+      hint:"Informe de traces / avisos.",
+      cols:"ROOM, GUEST_NAME, TRACE_TEXT, DEPT_ID, RESV_NAME_ID"
+    }
+  };
+  const REPORT_ORDER = ["rooms","arrivals","departures","t120","traces"];
+
+  try{
+    const sv = JSON.parse(localStorage.getItem("pcontingencia.settings") || "null");
+    if(sv && ["ip","clip","any"].indexOf(sv.ready) >= 0) state.settings.ready = sv.ready;
+  }catch(e){}
+  function saveSettings(){
+    try{ localStorage.setItem("pcontingencia.settings", JSON.stringify(state.settings)); }catch(e){}
+  }
+
+  // ¿La habitación está lista para asignar / dar check-in?
+  function isReady(status){
+    const m = state.settings.ready;
+    if(m === "any") return !!status && status !== "OS" && status !== "BL";
+    if(m === "clip") return status === "CL" || status === "IP";
+    return status === "IP";
+  }
+  function readyLabel(){
+    return {ip:"Inspeccionada", clip:"Limpia o Inspeccionada", any:"disponible (no fuera de servicio ni bloqueada)"}[state.settings.ready];
+  }
+
+  const STATUS_LABEL = {CL:"Limpia", DI:"Sucia", IP:"Inspeccionada", PU:"Pick-up", OS:"Fuera de servicio", BL:"Bloqueada"};
+  function overrideKey(room, charD){ return room + "|" + charD; }
+
+  function escapeHtml(str){
+    if(str===undefined || str===null) return "";
+    return String(str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  // ---------- Validación de números de habitación ----------
+  // Los informes de OPERA incluyen "habitaciones" sueltas (piscina, spa, pie de informe...).
+  // Si la mayoría de las habitaciones son numéricas, solo se aceptan numéricas; si el hotel
+  // usa códigos con letras (A101, VILLA3...), se aceptan alfanuméricos.
+  function roomMode(values){
+    let t = 0, n = 0;
+    new Set(values).forEach(v => { t++; if(/^\d+$/.test(v)) n++; });
+    return (t && n / t >= 0.5) ? "numeric" : "any";
+  }
+  function validRoom(room, mode){
+    if(!room || room.length > 10 || /\s/.test(room)) return false;
+    if(/^(LOGO|ROOM|TOTAL|TOTALS)$/i.test(room)) return false;
+    return mode === "numeric" ? /^\d+$/.test(room) : /^[A-Za-z0-9][A-Za-z0-9._\/\-]*$/.test(room);
+  }
+
+  // ---------- Parsing: plano de habitaciones (una línea por registro) ----------
+  function parseResRoomPlan(text){
+    const lines = text.split(/\r?\n/);
+    if(lines.length < 2) return [];
+    const header = lines[0].split("\t").map(h => h.trim());
+    const idx = name => header.indexOf(name);
+    const iRoom=idx("ROOM"), iType=idx("ROOM_TYPE"), iStatus=idx("ROOM_STATUS"),
+          iOra=idx("ORA_DATE"), iCharD=idx("CHAR_D"), iDay=idx("DAY"), iGuest=idx("GUEST");
+    if(iRoom < 0 || iCharD < 0) return [];
+    const raw = [];
+    for(let i=1;i<lines.length;i++){
+      const line = lines[i];
+      if(!line || !line.trim()) continue;
+      const cols = line.split("\t");
+      if(cols.length < 3) continue;
+      const room = (cols[iRoom] || "").trim();
+      const charD = (cols[iCharD] || "").trim();
+      if(!room || !charD) continue;
+      raw.push({room, cols});
+    }
+    const mode = roomMode(raw.map(r => r.room));
+    const out = [];
+    raw.forEach(({room, cols}) => {
+      if(!validRoom(room, mode)) return;
+      const guestRaw = (cols[iGuest] || "").trim();
+      out.push({
+        room: room,
+        roomType: (cols[iType]||"").trim(),
+        status: (cols[iStatus]||"").trim(),
+        oraDate: (cols[iOra]||"").trim(),
+        charD: (cols[iCharD]||"").trim(),
+        day: (cols[iDay]||"").trim(),
+        inHouse: guestRaw.startsWith("!"),
+        guest: guestRaw.replace(/^!/, "").trim()
+      });
+    });
+    return out;
+  }
+
+  // ---------- Parsing helper for multi-line tab-delimited records ----------
+  function parseMultilineDelimited(text, recordStartRegex, trailerRegex){
+    const lines = text.split(/\r?\n/);
+    if(lines.length < 2) return {header:[], records:[]};
+    const header = lines[0].split("\t").map(h => h.trim());
+    const records = [];
+    let current = [];
+    for(let i=1;i<lines.length;i++){
+      const line = lines[i];
+      if(trailerRegex.test(line)){
+        break;
+      }
+      if(recordStartRegex.test(line)){
+        if(current.length) records.push(current.join(" "));
+        current = [line];
+      } else {
+        if(current.length) current.push(line);
+      }
+    }
+    if(current.length) records.push(current.join(" "));
+    return {header, records};
+  }
+
+  function fieldGetter(header){
+    return function(cols, name){
+      const i = header.indexOf(name);
+      if(i === -1 || i >= cols.length) return "";
+      return (cols[i] || "").trim();
+    };
+  }
+
+  // ---------- Parsing: llegadas (registros de varias líneas) ----------
+  function parseArrivals(text){
+    const {header, records} = parseMultilineDelimited(
+      text, /^\d{8}\t/, /^(RMS_REPORT|LOGO)/
+    );
+    if(!header.length) return [];
+    const get = fieldGetter(header);
+    const out = [];
+    for(const rec of records){
+      const cols = rec.split("\t");
+      const name = get(cols,"FULL_NAME_NO_SHR_IND") || get(cols,"FULL_NAME");
+      if(!name) continue;
+      out.push({
+        room: get(cols,"ROOM_NO"),
+        guest: name,
+        arrivalTime: get(cols,"ARRIVAL_TIME") || get(cols,"ARRIVAL_TIME1"),
+        arrival: get(cols,"ARRIVAL"),
+        departure: get(cols,"DEPARTURE"),
+        roomType: get(cols,"ROOM_CATEGORY_LABEL"),
+        adults: get(cols,"ADULTS"),
+        children: get(cols,"CHILDREN"),
+        vip: get(cols,"VIP"),
+        company: get(cols,"COMPANY_NAME"),
+        group: get(cols,"GROUP_NAME"),
+        guarantee: get(cols,"GUARANTEE_CODE"),
+        confirmation: get(cols,"CONFIRMATION_NO"),
+        specialRequests: get(cols,"SPECIAL_REQUESTS"),
+        blockCode: get(cols,"BLOCK_CODE"),
+        resvNameId: get(cols,"RESV_NAME_ID"),
+        assignedManually: false,
+        checkedIn: false
+      });
+    }
+    return out;
+  }
+
+  // ---------- Parsing: salidas (registros de varias líneas) ----------
+  function parseDepartures(text){
+    const {header, records} = parseMultilineDelimited(
+      text, /^\d{2}[-\/.][A-Za-zÀ-ÿ]{3,4}\.?[-\/.]\d{2,4}\t/, /^(SUMBALANCEPERREPORT|LOGO)/
+    );
+    if(!header.length) return [];
+    const get = fieldGetter(header);
+    const out = [];
+    for(const rec of records){
+      const cols = rec.split("\t");
+      const name = get(cols,"GUEST_NAME");
+      if(!name) continue;
+      out.push({
+        room: get(cols,"ROOM"),
+        guest: name,
+        nights: get(cols,"NIGHTS"),
+        arrival: get(cols,"ARRIVAL"),
+        balance: get(cols,"BALANCE"),
+        resvStatus: get(cols,"RESV_STATUS"),
+        computedStatus: get(cols,"COMPUTED_RESV_STATUS"),
+        vip: get(cols,"VIP"),
+        company: get(cols,"COMPANY_NAME"),
+        group: get(cols,"GROUP_NAME"),
+        roomType: get(cols,"ROOM_CATEGORY_LABEL"),
+        checkedOut: false
+      });
+    }
+    return out;
+  }
+
+  // ---------- Parsing: estado real de habitaciones (una línea por registro) ----------
+  function parseT120(text){
+    const lines = text.split(/\r?\n/);
+    if(lines.length < 2) return {};
+    const header = lines[0].split("\t").map(h => h.trim());
+    const idx = name => header.indexOf(name);
+    const iRoom=idx("ROOM"), iType=idx("ROOM_TYPE"), iStatus=idx("ROOM_STATUS"), iDesc=idx("ROOM_RESV_STATUS_DESC");
+    if(iRoom < 0) return {};
+    const raw = [];
+    for(let i=1;i<lines.length;i++){
+      const line = lines[i];
+      if(!line || !line.trim()) continue;
+      const cols = line.split("\t");
+      if(cols.length < 3) continue;
+      const room = (cols[iRoom]||"").trim();
+      if(!room) continue;
+      raw.push({room, cols});
+    }
+    const mode = roomMode(raw.map(r => r.room));
+    const map = {};
+    raw.forEach(({room, cols}) => {
+      if(!validRoom(room, mode)) return;
+      const desc = (cols[iDesc]||"").trim();
+      const rawStatus = (cols[iStatus]||"").trim();
+      const roomType = (cols[iType]||"").trim();
+      if(desc === "Blocked"){
+        map[room] = {status:"BL", blocked:true, roomType};
+      } else if(!map[room]){
+        map[room] = {status: rawStatus, blocked:false, roomType};
+      }
+    });
+    return map;
+  }
+
+  // ---------- Parsing: avisos / traces (registros de varias líneas) ----------
+  function parseTraces(text){
+    const {header, records} = parseMultilineDelimited(
+      text, /^\t\t\d{2}[-\/.][A-Za-zÀ-ÿ]{3,4}\.?[-\/.]\d{2,4}\t/, /^LOGO/
+    );
+    if(!header.length) return [];
+    const get = fieldGetter(header);
+    const out = [];
+    for(const rec of records){
+      const cols = rec.split("\t");
+      const text = get(cols,"TRACE_TEXT");
+      if(!text) continue;
+      out.push({
+        room: get(cols,"ROOM"),
+        guest: get(cols,"GUEST_NAME"),
+        vip: get(cols,"VIP"),
+        arrival: get(cols,"ARRIVAL"),
+        departure: get(cols,"DEPARTURE"),
+        text: text,
+        traceId: get(cols,"TRACE_ID"),
+        roomType: get(cols,"ROOM_CATEGORY_LABEL"),
+        dept: get(cols,"DEPT_ID") || "—",
+        resvNameId: get(cols,"RESV_NAME_ID")
+      });
+    }
+    return out;
+  }
+
+  // ---------- Carga de ficheros (detección automática) ----------
+  function decodeBuffer(buf){
+    const u8 = new Uint8Array(buf);
+    if(u8.length >= 2 && u8[0] === 0xFF && u8[1] === 0xFE) return new TextDecoder("utf-16le").decode(u8).replace(/^﻿/, "");
+    if(u8.length >= 2 && u8[0] === 0xFE && u8[1] === 0xFF) return new TextDecoder("utf-16be").decode(u8).replace(/^﻿/, "");
+    try{
+      return new TextDecoder("utf-8", {fatal:true}).decode(u8).replace(/^﻿/, "");
+    }catch(e){
+      return new TextDecoder("windows-1252").decode(u8);
+    }
+  }
+  function readFileText(file){
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(decodeBuffer(fr.result));
+      fr.onerror = () => reject(fr.error);
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  // Reconoce el informe por las columnas de su primera línea.
+  function detectReport(text){
+    if(text.slice(0, 5) === "%PDF-") return {type:null, reason:"binary"};
+    if(text.slice(0, 2) === "PK") return {type:null, reason:"binary"};
+    let nl = text.indexOf("\n"); if(nl < 0) nl = text.length;
+    const first = text.slice(0, nl).replace(/\r$/, "");
+    if(first.indexOf("\t") === -1) return {type:null, reason:"notab"};
+    const h = new Set(first.split("\t").map(x => x.trim().toUpperCase()));
+    if(h.has("TRACE_TEXT")) return {type:"traces"};
+    if(h.has("ROOM_RESV_STATUS_DESC")) return {type:"t120"};
+    if(h.has("FULL_NAME_NO_SHR_IND") || (h.has("CONFIRMATION_NO") && h.has("ROOM_NO"))) return {type:"arrivals"};
+    if(h.has("GUEST_NAME") && h.has("BALANCE") && (h.has("NIGHTS") || h.has("SUM_NTS"))) return {type:"departures"};
+    if(h.has("CHAR_D") && h.has("ROOM") && h.has("ROOM_STATUS")) return {type:"rooms"};
+    return {type:null, reason:"unknown"};
+  }
+
+  // ---------- Avisos en pantalla (toasts) ----------
+  function toast(msg, kind, ms){
+    const wrap = document.getElementById("toasts");
+    if(!wrap) return;
+    const el = document.createElement("div");
+    el.className = "toast" + (kind ? " " + kind : "");
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, ms || (kind === "err" ? 9000 : 5000));
+  }
+
+  function hasAnyData(){
+    return state.rooms.length > 0 || state.arrivals.length > 0 || state.departures.length > 0 ||
+           Object.keys(state.t120).length > 0 || state.traces.length > 0;
+  }
+  function hasManualWork(){
+    return Object.keys(state.overrides).length > 0 || Object.keys(state.checkins).length > 0 ||
+           state.arrivals.some(a => a.assignedManually) || state.departures.some(d => d.checkedOut);
+  }
+
+  const CHIP_IDS = {rooms:["chip-rooms","meta-rooms"], arrivals:["chip-arrivals","meta-arrivals"],
+    departures:["chip-departures","meta-departures"], t120:["chip-t120","meta-t120"], traces:["chip-traces","meta-traces"]};
+  function reportCount(type){
+    if(type === "rooms") return new Set(state.rooms.map(r => r.room)).size;
+    if(type === "arrivals") return state.arrivals.length;
+    if(type === "departures") return state.departures.length;
+    if(type === "t120") return Object.keys(state.t120).length;
+    return state.traces.length;
+  }
+  function refreshPills(){
+    REPORT_ORDER.forEach(type => {
+      const n = reportCount(type);
+      const chip = document.getElementById(CHIP_IDS[type][0]);
+      const meta = document.getElementById(CHIP_IDS[type][1]);
+      chip.classList.toggle("loaded", n > 0);
+      const unit = {rooms:"hab.", arrivals:"llegadas", departures:"salidas", t120:"hab.", traces:"avisos"}[type];
+      meta.textContent = n > 0 ? (n + " " + unit) : (REPORTS[type].req ? "necesario" : "opcional");
+      chip.title = REPORTS[type].title + (state.files[type] ? " · " + state.files[type] : "");
+    });
+    document.getElementById("demo-banner").classList.toggle("show", !!state.demo);
+    document.body.classList.toggle("no-data", !hasAnyData());
+  }
+
+  function renderAll(){
+    renderRooms(); renderArrivals(); renderDepartures(); renderHousekeeping(); renderAvisos();
+    refreshPills();
+  }
+
+  function showTab(panelId){
+    const btn = document.querySelector('.tab-btn[data-panel="' + panelId + '"]');
+    if(btn) btn.click();
+  }
+  const TAB_OF = {rooms:"panel-rooms", arrivals:"panel-arrivals", departures:"panel-departures", t120:"panel-rooms", traces:"panel-avisos"};
+
+  function clearAll(){
+    state.rooms = []; state.arrivals = []; state.departures = []; state.t120 = {}; state.traces = [];
+    state.overrides = {}; state.checkins = {}; state.files = {}; state.activeDay = null;
+    state.dateFmt = {order:"DMY", sep:"-", yl:2}; state.demo = false;
+    renderAll();
+  }
+
+  // Reaplica los check-in / check-out de contingencia tras recargar un informe.
+  function reapplyContingencyWork(){
+    const byConf = {};
+    Object.keys(state.checkins).forEach(k => {
+      const c = state.checkins[k];
+      if(c && c.confirmation) byConf[c.confirmation] = k.split("|")[0];
+    });
+    state.arrivals.forEach(a => {
+      if(a.confirmation && byConf[a.confirmation] && !a.room){
+        a.room = byConf[a.confirmation]; a.assignedManually = true; a.checkedIn = true;
+      }
+    });
+    const today = todayCharD();
+    if(today){
+      state.departures.forEach(d => {
+        const ov = d.room ? state.overrides[overrideKey(d.room, today)] : null;
+        if(ov && ov.checkedOut) d.checkedOut = true;
+      });
+    }
+  }
+
+  function applyReport(type, text, name){
+    if(type === "rooms"){
+      state.rooms = parseResRoomPlan(text);
+      if(state.rooms.length) state.dateFmt = detectDateFmt(state.rooms);
+      state.activeDay = null;
+    } else if(type === "arrivals"){
+      state.arrivals = parseArrivals(text);
+    } else if(type === "departures"){
+      state.departures = parseDepartures(text);
+    } else if(type === "t120"){
+      state.t120 = parseT120(text);
+    } else if(type === "traces"){
+      state.traces = parseTraces(text);
+    }
+    const n = reportCount(type);
+    if(n > 0) state.files[type] = name;
+    return n;
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList || []);
+    if(!files.length) return;
+    const hadData = hasAnyData();
+    const items = [];
+    for(const f of files){
+      try{
+        if(/\.(pdf|xlsx?|docx?|zip)$/i.test(f.name)){
+          items.push({name:f.name, err:"No es un fichero de texto. Exporta el informe en formato «Delimited Data» (.txt)."});
+          continue;
+        }
+        const text = await readFileText(f);
+        const det = detectReport(text);
+        if(!det.type){
+          const why = det.reason === "binary" ? "No es un fichero de texto. Exporta el informe en formato «Delimited Data» (.txt)."
+            : det.reason === "notab" ? "No parece un export «Delimited Data» separado por tabuladores."
+            : "No reconozco este informe (¿es uno de los de la guía?).";
+          items.push({name:f.name, err:why});
+        } else {
+          items.push({name:f.name, type:det.type, text});
+        }
+      }catch(e){
+        items.push({name:f.name, err:"No se pudo leer el fichero."});
+      }
+    }
+    const good = items.filter(i => i.type);
+    if(good.length && state.demo) clearAll();
+    // el plano de habitaciones primero: fija el formato de fecha
+    good.sort((a, b) => REPORT_ORDER.indexOf(a.type) - REPORT_ORDER.indexOf(b.type));
+    const loadedTypes = [];
+    good.forEach(it => {
+      const n = applyReport(it.type, it.text, it.name);
+      if(n > 0){
+        loadedTypes.push(it.type);
+        toast("✓ " + REPORTS[it.type].title + ": " + n + (it.type === "rooms" ? " habitaciones" : it.type === "t120" ? " habitaciones" : " registros"), "");
+      } else {
+        toast("⚠ " + it.name + ": se reconoce como «" + REPORTS[it.type].title + "» pero no contiene datos utilizables.", "warn");
+      }
+    });
+    items.filter(i => i.err).forEach(i => toast("✗ " + i.name + ": " + i.err, "err"));
+    if(loadedTypes.length){
+      reapplyContingencyWork();
+      renderAll();
+      if(!hadData) showTab(TAB_OF[loadedTypes[0]]);
+      if(loadedTypes.indexOf("rooms") < 0 && !state.rooms.length &&
+         (loadedTypes.indexOf("arrivals") >= 0 || loadedTypes.indexOf("departures") >= 0)){
+        toast("Consejo: carga también el plano de habitaciones para poder asignar habitaciones y dar check-in.", "warn");
+      }
+    }
+  }
+
+  const fileAny = document.getElementById("file-any");
+  fileAny.addEventListener("change", function(){ handleFiles(this.files).then(() => { this.value = ""; }); });
+  document.getElementById("btn-load").addEventListener("click", () => fileAny.click());
+  document.getElementById("dropzone").addEventListener("click", () => fileAny.click());
+  document.getElementById("dropzone").addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); fileAny.click(); } });
+
+  // Arrastrar y soltar en cualquier parte de la página
+  let dragDepth = 0;
+  const dropveil = document.getElementById("dropveil");
+  function hasFiles(e){ return e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf("Files") >= 0; }
+  window.addEventListener("dragenter", e => { if(!hasFiles(e)) return; e.preventDefault(); dragDepth++; dropveil.classList.add("show"); });
+  window.addEventListener("dragover", e => { if(!hasFiles(e)) return; e.preventDefault(); });
+  window.addEventListener("dragleave", e => { if(!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if(!dragDepth) dropveil.classList.remove("show"); });
+  window.addEventListener("drop", e => {
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; dropveil.classList.remove("show");
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // Clics en enlaces internos (data-act)
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-act]");
+    if(!el) return;
+    const act = el.dataset.act;
+    if(act === "load") fileAny.click();
+    if(act === "guide") openGuide();
+    if(act === "settings") openSettings();
+  });
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.panel).classList.add("active");
+    });
+  });
+
+  // ---------- Render: Habitaciones ----------
+  function floorOf(room){
+    const m = String(room).match(/^(\D*)(\d+)(\D*)$/);
+    if(!m) return "Otras";
+    const digits = m[2];
+    const padded = digits.length < 4 ? digits.padStart(4, "0") : digits;
+    const f = padded.length <= 2 ? "0" : padded.slice(0, padded.length - 2);
+    return (m[1] ? m[1].trim() + " " : "") + f;
+  }
+  function floorTitle(f){ return f === "Otras" ? "Otras habitaciones" : "Planta " + f; }
+
+  function renderRooms(){
+    const empty = document.getElementById("rooms-empty");
+    const content = document.getElementById("rooms-content");
+    if(!state.rooms.length){
+      empty.style.display="block"; content.style.display="none";
+      document.getElementById("count-rooms").textContent = "";
+      return;
+    }
+    empty.style.display="none"; content.style.display="block";
+    document.getElementById("count-rooms").textContent = "(" + new Set(state.rooms.map(r=>r.room)).size + ")";
+
+    // day tabs
+    const days = [];
+    const seen = new Set();
+    state.rooms.forEach(r => { if(!seen.has(r.charD)){ seen.add(r.charD); days.push(r); } });
+    days.sort((a,b) => compareDates(a.charD, b.charD));
+    if(!state.activeDay || !seen.has(state.activeDay)) state.activeDay = days[0].charD;
+
+    const dayTabsEl = document.getElementById("day-tabs");
+    dayTabsEl.innerHTML = "";
+    days.forEach(d => {
+      const b = document.createElement("button");
+      b.className = "daychip" + (d.charD === state.activeDay ? " active" : "");
+      b.textContent = d.day + " " + d.charD;
+      b.addEventListener("click", () => { state.activeDay = d.charD; renderRooms(); });
+      dayTabsEl.appendChild(b);
+    });
+
+    drawRoomGrid();
+  }
+
+  // ---------- Fechas ----------
+  // Las fechas de OPERA llegan como texto (DD-MM-AA, MM/DD/AA, DD-MMM-AA...). Para compararlas
+  // nunca se usa el texto: se convierten a un número AAAAMMDD (dateKey).
+  const MONTHS = {JAN:1,ENE:1,FEB:2,MAR:3,APR:4,ABR:4,MAY:5,JUN:6,JUL:7,AUG:8,AGO:8,SEP:9,SET:9,OCT:10,NOV:11,DEC:12,DIC:12};
+
+  function parseDateParts(str){
+    const m = String(str || "").trim().match(/^(\d{1,4})([-\/.])([A-Za-zÀ-ÿ]{3,4}|\d{1,2})\.?\2(\d{1,4})$/);
+    if(!m) return null;
+    const a = m[1], mid = m[3], c = m[4];
+    let y, mo, d;
+    if(a.length === 4){ y = +a; mo = +mid; d = +c; }
+    else if(/^[A-Za-zÀ-ÿ]/.test(mid)){
+      mo = MONTHS[mid.slice(0,3).toUpperCase()];
+      if(!mo) return null;
+      d = +a; y = +c;
+    }
+    else if(state.dateFmt.order === "MDY"){ mo = +a; d = +mid; y = +c; }
+    else { d = +a; mo = +mid; y = +c; }
+    if(y < 100) y += 2000;
+    if(!(mo >= 1 && mo <= 12 && d >= 1 && d <= 31)) return null;
+    return {y, m:mo, d};
+  }
+  function dateKey(str){
+    const p = parseDateParts(str);
+    return p ? p.y * 10000 + p.m * 100 + p.d : null;
+  }
+  function compareDates(a, b){
+    const ka = dateKey(a), kb = dateKey(b);
+    if(ka === null || kb === null) return String(a).localeCompare(String(b));
+    return ka - kb;
+  }
+
+  // Deduce el formato de fecha del plano de habitaciones (orden día/mes, separador, año).
+  function detectDateFmt(rows){
+    const fmt = {order:"DMY", sep:"-", yl:2};
+    const first = rows.find(r => r.charD);
+    if(!first) return fmt;
+    const sm = first.charD.match(/^(\d{1,4})([-\/.])(\d{1,2}|[A-Za-zÀ-ÿ]{3,4})\.?\2(\d{1,4})$/);
+    if(!sm) return fmt;
+    fmt.sep = sm[2];
+    if(sm[1].length === 4){ fmt.order = "YMD"; fmt.yl = 4; return fmt; }
+    fmt.yl = sm[4].length >= 4 ? 4 : 2;
+    let votesD = 0, votesM = 0;
+    const seen = new Set();
+    rows.forEach(r => {
+      if(!r.charD || seen.has(r.charD)) return;
+      seen.add(r.charD);
+      const parts = r.charD.split(/[-\/.]/);
+      if(parts.length !== 3) return;
+      const p0 = +parts[0], p1 = +parts[1];
+      if(p0 > 12) votesD++;
+      if(p1 > 12) votesM++;
+      // ORA_DATE siempre empieza por el día (DD-MMM-AA): sirve para desempatar
+      const om = (r.oraDate || "").match(/^(\d{1,2})[-\/.]/);
+      if(om){
+        const od = +om[1];
+        if(p0 === od && p1 !== od) votesD++;
+        else if(p1 === od && p0 !== od) votesM++;
+      }
+    });
+    fmt.order = votesM > votesD ? "MDY" : "DMY";
+    return fmt;
+  }
+  function formatDateParts(y, m, d){
+    const f = state.dateFmt;
+    const dd = String(d).padStart(2,"0"), mm = String(m).padStart(2,"0");
+    const yy = f.yl === 4 ? String(y) : String(y).slice(-2);
+    if(f.order === "YMD") return String(y) + f.sep + mm + f.sep + dd;
+    if(f.order === "MDY") return mm + f.sep + dd + f.sep + yy;
+    return dd + f.sep + mm + f.sep + yy;
+  }
+
+  function todayCharD(){
+    if(!state.rooms.length) return null;
+    return state.rooms.reduce((min, r) => (!min || compareDates(r.charD, min) < 0) ? r.charD : min, null);
+  }
+  function maxLoadedDay(){
+    if(!state.rooms.length) return null;
+    return state.rooms.reduce((max, r) => (!max || compareDates(r.charD, max) > 0) ? r.charD : max, null);
+  }
+
+  function dmyToDate(str){
+    const p = parseDateParts(str);
+    return p ? new Date(p.y, p.m - 1, p.d) : null;
+  }
+  function dateToDMY(dt){
+    return formatDateParts(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
+  }
+  // Noches entre llegada y salida (la salida no cuenta). Sin salida válida: una noche.
+  function nightsRange(arrivalDMY, departureDMY){
+    const start = dmyToDate(arrivalDMY), end = dmyToDate(departureDMY);
+    const nights = [];
+    if(!start) return nights;
+    if(!end || end <= start) return [dateToDMY(start)];
+    const cur = new Date(start);
+    let guard = 0;
+    while(cur < end && guard < 90){
+      nights.push(dateToDMY(cur));
+      cur.setDate(cur.getDate() + 1);
+      guard++;
+    }
+    return nights;
+  }
+
+  // For a given arrival, compute assignable room candidates.
+  function isRoomFreeForNight(roomNo, night, excludeArrival){
+    if(state.checkins[overrideKey(roomNo, night)]) return false;
+    const ov = state.overrides[overrideKey(roomNo, night)];
+    if(ov && ov.checkedOut) return true;
+    const row = state.rooms.find(r => r.room === roomNo && r.charD === night);
+    if(row && row.guest) return false;
+    for(const a of state.arrivals){
+      if(a === excludeArrival) continue;
+      if(a.room !== roomNo) continue;
+      const aNights = nightsRange(a.arrival || todayCharD(), a.departure);
+      if(aNights.includes(night)) return false;
+    }
+    return true;
+  }
+
+  function findCandidateRooms(arrival){
+    const nights = nightsRange(arrival.arrival || todayCharD(), arrival.departure);
+    const uncovered = nights.filter(n => !state.rooms.some(r => r.charD === n));
+    const roomsByNumber = {};
+    state.rooms.forEach(r => { (roomsByNumber[r.room] = roomsByNumber[r.room] || []).push(r); });
+
+    const candidates = [];
+    Object.keys(roomsByNumber).forEach(roomNo => {
+      const rows = roomsByNumber[roomNo];
+      const todayRow = rows.find(r => r.charD === todayCharD());
+      if(!todayRow) return;
+      const ov = state.overrides[overrideKey(roomNo, todayCharD())];
+      const t120entry = state.t120[roomNo];
+      const todayStatus = ov ? ov.status : (t120entry ? t120entry.status : todayRow.status);
+      if(!isReady(todayStatus)) return; // criterio configurable en Datos y ajustes
+
+      const free = nights.every(n => isRoomFreeForNight(roomNo, n, arrival));
+      if(!free) return;
+
+      candidates.push({
+        room: roomNo,
+        status: todayStatus,
+        roomType: todayRow.roomType,
+        sameType: todayRow.roomType === arrival.roomType,
+        uncoveredNights: uncovered
+      });
+    });
+
+    candidates.sort((a,b) => {
+      if(a.sameType !== b.sameType) return a.sameType ? -1 : 1;
+      return a.room.localeCompare(b.room, undefined, {numeric:true});
+    });
+    return candidates;
+  }
+
+  // Assign a room to an arrival. doCheckin=true marks it occupied in the room plan now;
+  // doCheckin=false just reserves the room on the arrival, ready for a later check-in.
+  function assignRoomToArrival(arrival, roomNo, doCheckin){
+    arrival.room = roomNo;
+    arrival.assignedManually = true;
+    arrival.checkedIn = false;
+    if(doCheckin){
+      checkInArrival(arrival);
+    }
+  }
+
+  function checkInArrival(arrival){
+    if(!arrival.room) return;
+    if(!isReady(roomTodayStatus(arrival.room))) return;
+    const nights = nightsRange(arrival.arrival || todayCharD(), arrival.departure);
+    nights.forEach(n => {
+      state.checkins[overrideKey(arrival.room, n)] = {
+        guest: arrival.guest,
+        confirmation: arrival.confirmation,
+        assignedAt: new Date().toLocaleString("es-ES")
+      };
+    });
+    arrival.checkedIn = true;
+  }
+
+  function unassignArrival(arrival){
+    if(arrival.room){
+      const nights = nightsRange(arrival.arrival || todayCharD(), arrival.departure);
+      nights.forEach(n => { delete state.checkins[overrideKey(arrival.room, n)]; });
+    }
+    arrival.room = "";
+    arrival.assignedManually = false;
+    arrival.checkedIn = false;
+  }
+
+  function drawRoomGrid(){
+    const search = (document.getElementById("rooms-search").value || "").toLowerCase().trim();
+    const dayRows = state.rooms.filter(r => r.charD === state.activeDay);
+    const isToday = state.activeDay === todayCharD();
+    const hasT120 = Object.keys(state.t120).length > 0;
+
+    const counts = {CL:0, DI:0, IP:0, PU:0, OS:0, BL:0, occ:0, vac:0, manual:0, ckin:0};
+    dayRows.forEach(r => {
+      const ov = state.overrides[overrideKey(r.room, r.charD)];
+      const t120entry = (isToday && hasT120) ? state.t120[r.room] : null;
+      const effStatus = ov ? ov.status : (t120entry ? t120entry.status : r.status);
+      const ckin = state.checkins[overrideKey(r.room, r.charD)];
+      if(counts[effStatus]!==undefined) counts[effStatus]++;
+      if(ov) counts.manual++;
+      if(ckin) counts.ckin++;
+      if(r.guest || ckin) counts.occ++; else counts.vac++;
+    });
+
+    document.getElementById("rooms-summary").innerHTML =
+      "<b>" + dayRows.length + "</b> habitaciones · <b>" + counts.occ + "</b> ocupadas · <b>" + counts.vac + "</b> vacías · <b>" + counts.manual + "</b> actualizadas a mano · <b>" + counts.ckin + "</b> check-in de contingencia · " +
+      Object.keys(STATUS_LABEL).map(k => (STATUS_LABEL[k]+": "+(counts[k]||0))).join(" · ") +
+      (isToday && hasT120 ? ' · <span style="color:var(--oos);font-weight:700;">estado real (T120) aplicado</span>' : "");
+
+    let filtered = dayRows.filter(r => {
+      if(!search) return true;
+      return r.room.toLowerCase().includes(search) || r.guest.toLowerCase().includes(search);
+    });
+    if(state.roomsFilter === "manual"){
+      filtered = filtered.filter(r => state.overrides[overrideKey(r.room, r.charD)]);
+    }
+
+    const byFloor = {};
+    filtered.forEach(r => {
+      const f = floorOf(r.room);
+      (byFloor[f] = byFloor[f] || []).push(r);
+    });
+    const floors = Object.keys(byFloor).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+
+    const grid = document.getElementById("rooms-grid");
+    if(!floors.length){
+      grid.innerHTML = '<div class="empty-state">Sin resultados para esa búsqueda.</div>';
+      return;
+    }
+    let html = "";
+    floors.forEach(f => {
+      const rooms = byFloor[f].sort((a,b)=>a.room.localeCompare(b.room, undefined, {numeric:true}));
+      html += '<div class="floor-group"><h3>' + escapeHtml(floorTitle(f)) + '</h3><div class="room-grid">';
+      rooms.forEach(r => {
+        const ov = state.overrides[overrideKey(r.room, r.charD)];
+        const t120entry = (isToday && hasT120) ? state.t120[r.room] : null;
+        const effStatus = ov ? ov.status : (t120entry ? t120entry.status : r.status);
+        const ckin = state.checkins[overrideKey(r.room, r.charD)];
+        const statusClass = "st-" + (STATUS_LABEL[effStatus] ? effStatus : "OS");
+        const borderClass = STATUS_LABEL[effStatus] ? " border-"+effStatus : "";
+        const manualClass = ov ? " manual" : (ckin ? " manual" : "");
+        const guestName = ckin ? ckin.guest : ((ov && ov.checkedOut) ? "" : r.guest);
+        html += '<div class="room-card' + borderClass + manualClass + '" data-room="' + escapeHtml(r.room) + '" data-chard="' + escapeHtml(r.charD) + '">' +
+          '<span class="room-no">' + escapeHtml(r.room) + '</span><span class="room-type">' + escapeHtml(r.roomType) + '</span>' +
+          (ov ? '<span class="manual-badge">✓</span>' : (t120entry ? '<span class="t120-badge">T120</span>' : '')) +
+          (ckin ? '<span class="manual-badge">CKIN</span>' : '') + '<br>' +
+          '<span class="status-tag ' + statusClass + '">' + escapeHtml(STATUS_LABEL[effStatus] || effStatus || "?") + '</span>' +
+          (guestName ? '<div class="guest">' + escapeHtml(guestName) + (r.inHouse ? '<span class="in-badge">IN</span>' : '') + '</div>' : '<div class="guest muted">Vacía</div>') +
+          (ov && ov.note ? '<div class="manual-note" title="'+escapeHtml(ov.note)+'">' + escapeHtml(ov.note) + '</div>' : '') +
+          (ckin ? '<div class="manual-note">Asignado en contingencia</div>' : '') +
+          '</div>';
+      });
+      html += '</div></div>';
+    });
+    grid.innerHTML = html;
+    drawHousekeeping();
+  }
+
+  document.getElementById("rooms-search").addEventListener("input", drawRoomGrid);
+  document.querySelectorAll('[data-roomsfilter]').forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll('[data-roomsfilter]').forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      state.roomsFilter = b.dataset.roomsfilter;
+      drawRoomGrid();
+    });
+  });
+
+  // ---------- Room status editor modal ----------
+  const modal = document.getElementById("room-modal");
+  const modalStatusGrid = document.getElementById("modal-status-grid");
+  const modalNote = document.getElementById("modal-note");
+  const modalSave = document.getElementById("modal-save");
+  const modalRevert = document.getElementById("modal-revert");
+  let modalTarget = null; // {room, charD}
+  let modalSelected = null;
+
+  const STATUS_COLORS = {CL:"var(--clean)", DI:"var(--dirty)", IP:"var(--inspected)", PU:"var(--pickup)", OS:"var(--oos)", BL:"var(--blocked)"};
+
+  document.getElementById("rooms-grid").addEventListener("click", (e) => {
+    const card = e.target.closest(".room-card");
+    if(!card) return;
+    const room = card.dataset.room, charD = card.dataset.chard;
+    const rowData = state.rooms.find(r => r.room === room && r.charD === charD);
+    if(!rowData) return;
+    openRoomModal(room, charD, rowData);
+  });
+
+  function openRoomModal(room, charD, rowData){
+    modalTarget = {room, charD};
+    const ov = state.overrides[overrideKey(room, charD)];
+    const isToday = charD === todayCharD();
+    const t120entry = (isToday && state.t120[room]) ? state.t120[room] : null;
+    modalSelected = ov ? ov.status : (t120entry ? t120entry.status : rowData.status);
+    document.getElementById("modal-room-title").textContent = "Habitación " + room;
+    document.getElementById("modal-room-sub").textContent = rowData.roomType + " · " + charD + (rowData.guest ? " · " + rowData.guest : "") + (t120entry && !ov ? " · estado real T120" : "");
+    modalNote.value = ov ? (ov.note || "") : "";
+    modalRevert.style.display = ov ? "inline-block" : "none";
+    renderStatusGrid();
+    modalSave.disabled = false;
+    modal.classList.add("open");
+  }
+
+  function renderStatusGrid(){
+    modalStatusGrid.innerHTML = Object.keys(STATUS_LABEL).map(k => {
+      const sel = k === modalSelected ? " selected" : "";
+      return '<div class="status-choice' + sel + '" data-status="' + k + '" style="color:' + STATUS_COLORS[k] + ';">' + STATUS_LABEL[k] + '</div>';
+    }).join("");
+    modalStatusGrid.querySelectorAll(".status-choice").forEach(el => {
+      el.addEventListener("click", () => {
+        modalSelected = el.dataset.status;
+        renderStatusGrid();
+      });
+    });
+  }
+
+  document.getElementById("modal-cancel").addEventListener("click", () => modal.classList.remove("open"));
+  modal.addEventListener("click", (e) => { if(e.target === modal) modal.classList.remove("open"); });
+
+  modalSave.addEventListener("click", () => {
+    if(!modalTarget) return;
+    const key = overrideKey(modalTarget.room, modalTarget.charD);
+    const prevOv = state.overrides[key];
+    state.overrides[key] = {
+      status: modalSelected,
+      note: modalNote.value.trim(),
+      updatedAt: new Date().toLocaleString("es-ES"),
+      checkedOut: prevOv ? !!prevOv.checkedOut : false
+    };
+    modal.classList.remove("open");
+    drawRoomGrid();
+  });
+
+  modalRevert.addEventListener("click", () => {
+    if(!modalTarget) return;
+    delete state.overrides[overrideKey(modalTarget.room, modalTarget.charD)];
+    modal.classList.remove("open");
+    drawRoomGrid();
+  });
+
+  // ---------- Assign-room-to-arrival modal ----------
+  const assignModal = document.getElementById("assign-modal");
+  let assignTarget = null;
+
+  function openAssignModal(arrival){
+    assignTarget = arrival;
+    renderAssignModal();
+    assignModal.classList.add("open");
+  }
+
+  function renderAssignModal(){
+    const arrival = assignTarget;
+    document.getElementById("assign-title").textContent = "Habitación para " + arrival.guest;
+    document.getElementById("assign-sub").textContent =
+      "Tipo reservado: " + (arrival.roomType || "—") + " · Llegada " + (arrival.arrival||"hoy") + " · Salida " + (arrival.departure || "—");
+    document.getElementById("assign-uncovered").style.display = "none";
+
+    if(arrival.room && arrival.checkedIn){
+      renderAssignAssignedView(true);
+    } else if(arrival.room && !arrival.checkedIn){
+      renderAssignAssignedView(false);
+    } else {
+      renderAssignListView();
+    }
+  }
+
+  function renderAssignAssignedView(checkedIn){
+    const arrival = assignTarget;
+    const body = document.getElementById("assign-body");
+    const currentStatus = roomTodayStatus(arrival.room);
+    const canCheckIn = isReady(currentStatus);
+    body.innerHTML =
+      '<div class="assign-info"><b>Habitación ' + escapeHtml(arrival.room) + '</b>' +
+      (checkedIn ? 'Check-in hecho (contingencia)' : 'Asignada, sin check-in todavía') +
+      ' · ' + statusTag(currentStatus) +
+      '</div>' +
+      (!checkedIn && !canCheckIn ? '<div class="assign-info" style="border-left:4px solid var(--warn);">⚠ Solo se puede hacer check-in con la habitación en estado «' + escapeHtml(readyLabel()) + '». Cámbiala en Housekeeping o elige otra (el criterio se puede cambiar en «Datos y ajustes»).</div>' : '') +
+      '<div class="assign-row">' +
+      (checkedIn ? '' : '<button class="modal-btn btn-save" id="btn-do-checkin"' + (canCheckIn ? '' : ' disabled') + '>Dar de check-in</button>') +
+      '<button class="modal-btn btn-cancel" id="btn-change-room">Cambiar habitación</button>' +
+      '<button class="modal-btn btn-revert" id="btn-unassign">Quitar asignación</button>' +
+      '</div>';
+    if(!checkedIn && canCheckIn){
+      document.getElementById("btn-do-checkin").addEventListener("click", () => {
+        checkInArrival(arrival);
+        assignModal.classList.remove("open");
+        drawArrivals(); drawRoomGrid();
+      });
+    }
+    document.getElementById("btn-change-room").addEventListener("click", renderAssignListView);
+    document.getElementById("btn-unassign").addEventListener("click", () => {
+      unassignArrival(arrival);
+      assignModal.classList.remove("open");
+      drawArrivals(); drawRoomGrid();
+    });
+  }
+
+  function renderAssignListView(){
+    const arrival = assignTarget;
+    const candidates = findCandidateRooms(arrival);
+    const uncoveredEl = document.getElementById("assign-uncovered");
+    if(candidates.length && candidates[0].uncoveredNights.length){
+      uncoveredEl.style.display = "block";
+      uncoveredEl.textContent = "⚠ No se puede verificar disponibilidad después de " + maxLoadedDay() + " — revisa esas noches a mano.";
+    } else {
+      uncoveredEl.style.display = "none";
+    }
+
+    const body = document.getElementById("assign-body");
+    if(!candidates.length){
+      body.innerHTML = '<div class="candidate-empty">No hay habitaciones libres en estado «' + escapeHtml(readyLabel()) + '» para toda la estancia con los datos cargados. Puedes cambiar el criterio en <button class="linkbtn" data-act="settings" type="button">Datos y ajustes</button>, cargar el plano con más días, o revisar a mano.</div>' +
+        (arrival.room ? '<div class="assign-row"><button class="modal-btn btn-cancel" id="btn-back">Volver</button></div>' : '');
+      if(arrival.room) document.getElementById("btn-back").addEventListener("click", renderAssignModal);
+      return;
+    }
+    body.innerHTML =
+      '<div class="candidate-list">' + candidates.map(c => {
+        return '<div class="candidate-item" data-room="' + escapeHtml(c.room) + '">' +
+          '<span><span class="cand-room">' + escapeHtml(c.room) + '</span> <span class="cand-type">' + escapeHtml(c.roomType) + (c.sameType ? "" : " · tipo distinto") + '</span></span>' +
+          (c.uncoveredNights.length ? '<span class="cand-warn">⚠ parcial</span>' : statusTag(c.status)) +
+          '</div>';
+      }).join("") + '</div>' +
+      (arrival.room ? '<div class="assign-row"><button class="modal-btn btn-cancel" id="btn-back">Volver</button></div>' : '');
+
+    body.querySelectorAll(".candidate-item").forEach(el => {
+      el.addEventListener("click", () => renderAssignConfirmView(el.dataset.room));
+    });
+    if(arrival.room) document.getElementById("btn-back").addEventListener("click", renderAssignModal);
+  }
+
+  function renderAssignConfirmView(roomNo){
+    const body = document.getElementById("assign-body");
+    body.innerHTML =
+      '<div class="assign-info"><b>Habitación ' + escapeHtml(roomNo) + '</b>¿Dar de check-in ahora?</div>' +
+      '<div class="assign-row">' +
+      '<button class="modal-btn btn-save" id="btn-confirm-yes">Sí, check-in</button>' +
+      '<button class="modal-btn btn-cancel" id="btn-confirm-no">No, solo asignar</button>' +
+      '</div>' +
+      '<div class="assign-row"><button class="modal-btn btn-cancel" id="btn-confirm-back">Volver</button></div>';
+    document.getElementById("btn-confirm-yes").addEventListener("click", () => {
+      assignRoomToArrival(assignTarget, roomNo, true);
+      assignModal.classList.remove("open");
+      drawArrivals(); drawRoomGrid();
+    });
+    document.getElementById("btn-confirm-no").addEventListener("click", () => {
+      assignRoomToArrival(assignTarget, roomNo, false);
+      assignModal.classList.remove("open");
+      drawArrivals(); drawRoomGrid();
+    });
+    document.getElementById("btn-confirm-back").addEventListener("click", renderAssignListView);
+  }
+
+  document.getElementById("assign-cancel").addEventListener("click", () => assignModal.classList.remove("open"));
+  assignModal.addEventListener("click", (e) => { if(e.target === assignModal) assignModal.classList.remove("open"); });
+
+  // ---------- Render: Llegadas ----------
+  let arrivalsFilter = "all";
+  document.querySelectorAll('#panel-arrivals .filterchip').forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll('#panel-arrivals .filterchip').forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      arrivalsFilter = b.dataset.filter;
+      drawArrivals();
+    });
+  });
+  document.getElementById("arrivals-search").addEventListener("input", drawArrivals);
+
+  function renderArrivals(){
+    const empty = document.getElementById("arrivals-empty");
+    const content = document.getElementById("arrivals-content");
+    if(!state.arrivals.length){
+      empty.style.display="block"; content.style.display="none";
+      document.getElementById("count-arrivals").textContent = "";
+      return;
+    }
+    empty.style.display="none"; content.style.display="block";
+    document.getElementById("count-arrivals").textContent = "(" + state.arrivals.length + ")";
+    drawArrivals();
+  }
+
+  function roomTodayStatus(room){
+    const today = todayCharD();
+    const row = state.rooms.find(r => r.room === room && r.charD === today);
+    if(!row) return null;
+    const ov = state.overrides[overrideKey(room, today)];
+    const t120entry = state.t120[room];
+    return ov ? ov.status : (t120entry ? t120entry.status : row.status);
+  }
+
+  function statusTag(status){
+    if(!status || !STATUS_LABEL[status]) return "";
+    return '<span class="status-tag st-' + status + '">' + escapeHtml(STATUS_LABEL[status]) + '</span>';
+  }
+
+  function drawArrivals(){
+    const search = (document.getElementById("arrivals-search").value || "").toLowerCase().trim();
+    let rows = state.arrivals.slice();
+
+    if(arrivalsFilter === "unassigned") rows = rows.filter(r => !r.room);
+    if(arrivalsFilter === "vip") rows = rows.filter(r => r.vip);
+    if(arrivalsFilter === "assigned") rows = rows.filter(r => r.room);
+
+    if(search){
+      rows = rows.filter(r =>
+        (r.room||"").toLowerCase().includes(search) ||
+        (r.guest||"").toLowerCase().includes(search) ||
+        (r.company||"").toLowerCase().includes(search) ||
+        (r.group||"").toLowerCase().includes(search)
+      );
+    }
+
+    rows.sort((a,b) => {
+      if(!a.room && b.room) return -1;
+      if(a.room && !b.room) return 1;
+      return (a.room||"").localeCompare(b.room||"", undefined, {numeric:true});
+    });
+
+    const unassignedCount = state.arrivals.filter(r=>!r.room).length;
+    const vipCount = state.arrivals.filter(r=>r.vip).length;
+    const assignedPendingCount = state.arrivals.filter(r=>r.room && !r.checkedIn).length;
+    const checkedInCount = state.arrivals.filter(r=>r.checkedIn).length;
+    document.getElementById("arrivals-summary").innerHTML =
+      "<b>" + state.arrivals.length + "</b> llegadas hoy · <b>" + unassignedCount + "</b> sin asignar · <b>" + vipCount + "</b> VIP · <b>" + assignedPendingCount + "</b> asignadas sin check-in · <b>" + checkedInCount + "</b> check-in hecho";
+
+    const tbody = document.getElementById("arrivals-body");
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="10" class="muted">Sin resultados.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((r, i) => {
+      const roomCell = r.room
+        ? '<span class="room-num">' + escapeHtml(r.room) + '</span>' +
+          (r.checkedIn ? '<span class="manual-badge">CKIN</span>' : '<span class="badge badge-warn">ASIGNADA</span>') +
+          '<br>' + statusTag(roomTodayStatus(r.room))
+        : '<span class="badge badge-unassigned">SIN ASIGNAR</span>';
+      const rowClass = r.room ? "" : ' class="flag-unassigned"';
+      return '<tr' + rowClass + ' data-arrival-idx="' + escapeHtml(String(state.arrivals.indexOf(r))) + '" style="cursor:pointer;">' +
+        '<td data-label="Habitación">' + roomCell + '</td>' +
+        '<td data-label="Huésped">' + escapeHtml(r.guest) + traceBadge(r.resvNameId) + '</td>' +
+        '<td data-label="Hora">' + escapeHtml(r.arrivalTime) + '</td>' +
+        '<td data-label="Tipo">' + escapeHtml(r.roomType) + '</td>' +
+        '<td data-label="Pax">' + escapeHtml(r.adults) + 'A' + (r.children && r.children!=="0" ? "/"+escapeHtml(r.children)+"N" : "") + '</td>' +
+        '<td data-label="VIP">' + (r.vip ? '<span class="badge badge-vip">' + escapeHtml(r.vip) + '</span>' : '<span class="muted">—</span>') + '</td>' +
+        '<td data-label="Empresa / Grupo">' + escapeHtml(r.company || r.group || "—") + '</td>' +
+        '<td data-label="Garantía">' + escapeHtml(r.guarantee || "—") + '</td>' +
+        '<td data-label="Confirmación">' + escapeHtml(r.confirmation) + '</td>' +
+        '<td data-label="Peticiones">' + escapeHtml(r.specialRequests || "—") + '</td>' +
+        '</tr>';
+    }).join("");
+  }
+
+  document.getElementById("arrivals-body").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-arrival-idx]");
+    if(!tr) return;
+    const idx = parseInt(tr.dataset.arrivalIdx, 10);
+    const arrival = state.arrivals[idx];
+    if(!arrival) return;
+    openAssignModal(arrival);
+  });
+
+  // ---------- Render: Salidas ----------
+  let departuresFilter = "all";
+  document.querySelectorAll('#panel-departures .filterchip').forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll('#panel-departures .filterchip').forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      departuresFilter = b.dataset.filter;
+      drawDepartures();
+    });
+  });
+  document.getElementById("departures-search").addEventListener("input", drawDepartures);
+
+  function renderDepartures(){
+    const empty = document.getElementById("departures-empty");
+    const content = document.getElementById("departures-content");
+    if(!state.departures.length){
+      empty.style.display="block"; content.style.display="none";
+      document.getElementById("count-departures").textContent = "";
+      return;
+    }
+    empty.style.display="none"; content.style.display="block";
+    document.getElementById("count-departures").textContent = "(" + state.departures.length + ")";
+    drawDepartures();
+  }
+
+  function drawDepartures(){
+    const search = (document.getElementById("departures-search").value || "").toLowerCase().trim();
+    let rows = state.departures.slice();
+
+    if(departuresFilter === "balance") rows = rows.filter(r => parseFloat(r.balance||"0") !== 0);
+    if(departuresFilter === "notcheckedin") rows = rows.filter(r => r.resvStatus !== "CHECKED IN");
+
+    if(search){
+      rows = rows.filter(r =>
+        (r.room||"").toLowerCase().includes(search) ||
+        (r.guest||"").toLowerCase().includes(search) ||
+        (r.company||"").toLowerCase().includes(search) ||
+        (r.group||"").toLowerCase().includes(search)
+      );
+    }
+    rows.sort((a,b) => (a.room||"").localeCompare(b.room||"", undefined, {numeric:true}));
+
+    const balanceCount = state.departures.filter(r=>parseFloat(r.balance||"0")!==0).length;
+    const notCheckedCount = state.departures.filter(r=>r.resvStatus !== "CHECKED IN").length;
+    document.getElementById("departures-summary").innerHTML =
+      "<b>" + state.departures.length + "</b> salidas hoy · <b>" + balanceCount + "</b> con balance pendiente · <b>" + notCheckedCount + "</b> sin check-in registrado · <b>" + state.departures.filter(r=>r.checkedOut).length + "</b> dadas de out";
+
+    const tbody = document.getElementById("departures-body");
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">Sin resultados.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((r, i) => {
+      const bal = parseFloat(r.balance||"0");
+      const balCell = bal !== 0
+        ? '<span class="badge badge-balance">' + bal.toFixed(2) + ' €</span>'
+        : '<span class="badge badge-ok">0,00 €</span>';
+      const notCheckedIn = r.resvStatus !== "CHECKED IN";
+      const rowClass = r.checkedOut ? "" : (notCheckedIn ? ' class="flag-unassigned"' : "");
+      const roomCell = (r.room ? '<span class="room-num">'+escapeHtml(r.room)+'</span>' : '<span class="muted">—</span>') +
+        (r.checkedOut ? '<br><span class="manual-badge">OUT</span>' : '');
+      return '<tr' + rowClass + ' data-departure-idx="' + escapeHtml(String(state.departures.indexOf(r))) + '" style="cursor:pointer;">' +
+        '<td data-label="Habitación">' + roomCell + '</td>' +
+        '<td data-label="Huésped">' + escapeHtml(r.guest) + '</td>' +
+        '<td data-label="Noches">' + escapeHtml(r.nights) + '</td>' +
+        '<td data-label="Llegada">' + escapeHtml(r.arrival) + '</td>' +
+        '<td data-label="Balance">' + balCell + '</td>' +
+        '<td data-label="Estado">' + (r.checkedOut ? '<span class="badge badge-ok">OUT HECHO</span>' : (notCheckedIn ? '<span class="badge badge-warn">SIN CHECK-IN</span>' : '<span class="badge badge-ok">' + escapeHtml(r.resvStatus) + '</span>')) + '</td>' +
+        '<td data-label="VIP">' + (r.vip ? '<span class="badge badge-vip">' + escapeHtml(r.vip) + '</span>' : '<span class="muted">—</span>') + '</td>' +
+        '<td data-label="Empresa / Grupo">' + escapeHtml(r.company || r.group || "—") + '</td>' +
+        '</tr>';
+    }).join("");
+  }
+
+  document.getElementById("departures-body").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-departure-idx]");
+    if(!tr) return;
+    const idx = parseInt(tr.dataset.departureIdx, 10);
+    const departure = state.departures[idx];
+    if(!departure) return;
+    openDepartureModal(departure);
+  });
+
+  // ---------- Dar de out (check-out de contingencia) ----------
+  const departureModal = document.getElementById("departure-modal");
+  let departureTarget = null;
+
+  function checkOutDeparture(departure){
+    if(!departure.room) return;
+    const today = todayCharD();
+    state.overrides[overrideKey(departure.room, today)] = {
+      status: "DI",
+      note: "Check-out de contingencia — " + departure.guest,
+      updatedAt: new Date().toLocaleString("es-ES"),
+      checkedOut: true
+    };
+    departure.checkedOut = true;
+  }
+
+  function undoCheckOutDeparture(departure){
+    if(!departure.room) return;
+    delete state.overrides[overrideKey(departure.room, todayCharD())];
+    departure.checkedOut = false;
+  }
+
+  function openDepartureModal(departure){
+    departureTarget = departure;
+    document.getElementById("departure-title").textContent = "Habitación " + (departure.room || "—") + " · " + departure.guest;
+    document.getElementById("departure-sub").textContent = "Noches: " + (departure.nights||"—") + " · Llegada " + (departure.arrival||"—");
+
+    const body = document.getElementById("departure-body");
+    const bal = parseFloat(departure.balance||"0");
+
+    if(departure.checkedOut){
+      body.innerHTML =
+        '<div class="assign-info"><b>Ya dada de out</b>Se marcó como vacía y sucia en el Room Plan.</div>' +
+        '<div class="assign-row"><button class="modal-btn btn-revert" id="btn-undo-out">Deshacer</button></div>';
+      document.getElementById("btn-undo-out").addEventListener("click", () => {
+        undoCheckOutDeparture(departureTarget);
+        departureModal.classList.remove("open");
+        drawDepartures(); drawRoomGrid();
+      });
+    } else if(!departure.room){
+      body.innerHTML = '<div class="candidate-empty">Esta salida no tiene habitación asociada en los datos cargados.</div>';
+    } else if(bal !== 0){
+      body.innerHTML =
+        '<div class="assign-info"><b>⚠ Balance pendiente: ' + bal.toFixed(2) + ' €</b>¿Aún así quieres dar de out?</div>' +
+        '<div class="assign-row">' +
+        '<button class="modal-btn btn-save" id="btn-out-yes">Sí, dar de out</button>' +
+        '<button class="modal-btn btn-cancel" id="btn-out-no">No</button>' +
+        '</div>';
+      document.getElementById("btn-out-yes").addEventListener("click", () => {
+        checkOutDeparture(departureTarget);
+        departureModal.classList.remove("open");
+        drawDepartures(); drawRoomGrid();
+      });
+      document.getElementById("btn-out-no").addEventListener("click", () => departureModal.classList.remove("open"));
+    } else {
+      body.innerHTML =
+        '<div class="assign-info">¿Seguro que quieres dar de out la habitación ' + escapeHtml(departure.room) + '?</div>' +
+        '<div class="assign-row">' +
+        '<button class="modal-btn btn-save" id="btn-out-yes">Sí</button>' +
+        '<button class="modal-btn btn-cancel" id="btn-out-no">No</button>' +
+        '</div>';
+      document.getElementById("btn-out-yes").addEventListener("click", () => {
+        checkOutDeparture(departureTarget);
+        departureModal.classList.remove("open");
+        drawDepartures(); drawRoomGrid();
+      });
+      document.getElementById("btn-out-no").addEventListener("click", () => departureModal.classList.remove("open"));
+    }
+
+    departureModal.classList.add("open");
+  }
+
+  document.getElementById("departure-cancel").addEventListener("click", () => departureModal.classList.remove("open"));
+  departureModal.addEventListener("click", (e) => { if(e.target === departureModal) departureModal.classList.remove("open"); });
+
+  // ---------- Render: Housekeeping ----------
+  let hkFilter = "all";
+  document.querySelectorAll('[data-hkfilter]').forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll('[data-hkfilter]').forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      hkFilter = b.dataset.hkfilter;
+      drawHousekeeping();
+    });
+  });
+  document.getElementById("hk-search").addEventListener("input", drawHousekeeping);
+
+  function renderHousekeeping(){
+    const empty = document.getElementById("hk-empty");
+    const content = document.getElementById("hk-content");
+    if(!state.rooms.length){
+      empty.style.display="block"; content.style.display="none";
+      document.getElementById("count-housekeeping").textContent = "";
+      return;
+    }
+    empty.style.display="none"; content.style.display="block";
+    drawHousekeeping();
+  }
+
+  function drawHousekeeping(){
+    if(!state.rooms.length) return;
+    const grid = document.getElementById("hk-grid");
+    if(!grid) return;
+    const today = todayCharD();
+    const hasT120 = Object.keys(state.t120).length > 0;
+    const search = (document.getElementById("hk-search").value || "").toLowerCase().trim();
+
+    const todayRows = state.rooms.filter(r => r.charD === today);
+    const enriched = todayRows.map(r => {
+      const ov = state.overrides[overrideKey(r.room, today)];
+      const t120entry = hasT120 ? state.t120[r.room] : null;
+      const effStatus = ov ? ov.status : (t120entry ? t120entry.status : r.status);
+      const ckin = state.checkins[overrideKey(r.room, today)];
+      const guestName = ckin ? ckin.guest : ((ov && ov.checkedOut) ? "" : r.guest);
+      return {r, ov, t120entry, effStatus, ckin, guestName};
+    });
+
+    const counts = {CL:0, DI:0, IP:0, PU:0, OS:0, BL:0, vacant:0, occupied:0};
+    enriched.forEach(e => {
+      if(counts[e.effStatus]!==undefined) counts[e.effStatus]++;
+      if(e.guestName) counts.occupied++; else counts.vacant++;
+    });
+    document.getElementById("count-housekeeping").textContent = "(" + (counts.DI + counts.PU) + " pendientes)";
+    document.getElementById("hk-summary").innerHTML =
+      "<b>" + todayRows.length + "</b> habitaciones hoy · Sucia: <b>" + counts.DI + "</b> · Pick-up: <b>" + counts.PU + "</b> · Limpia: <b>" + counts.CL +
+      "</b> · Inspeccionada: <b>" + counts.IP + "</b> · Vacías: <b>" + counts.vacant + "</b> · Con cliente: <b>" + counts.occupied + "</b>";
+
+    let filtered = enriched.filter(e => {
+      if(search && !e.r.room.toLowerCase().includes(search)) return false;
+      if(hkFilter === "all") return true;
+      if(hkFilter === "vacant") return !e.guestName;
+      if(hkFilter === "occupied") return !!e.guestName;
+      return e.effStatus === hkFilter;
+    });
+
+    const byFloor = {};
+    filtered.forEach(e => {
+      const f = floorOf(e.r.room);
+      (byFloor[f] = byFloor[f] || []).push(e);
+    });
+    const floors = Object.keys(byFloor).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+
+    if(!floors.length){
+      grid.innerHTML = '<div class="empty-state">Sin resultados para ese filtro.</div>';
+      return;
+    }
+    let html = "";
+    floors.forEach(f => {
+      const items = byFloor[f].sort((a,b)=>a.r.room.localeCompare(b.r.room, undefined, {numeric:true}));
+      html += '<div class="floor-group"><h3>' + escapeHtml(floorTitle(f)) + '</h3><div class="room-grid">';
+      items.forEach(e => {
+        const r = e.r;
+        const statusClass = "st-" + (STATUS_LABEL[e.effStatus] ? e.effStatus : "OS");
+        const borderClass = STATUS_LABEL[e.effStatus] ? " border-"+e.effStatus : "";
+        const manualClass = e.ov ? " manual" : (e.ckin ? " manual" : "");
+        html += '<div class="room-card' + borderClass + manualClass + '" data-room="' + escapeHtml(r.room) + '" data-chard="' + escapeHtml(r.charD) + '">' +
+          '<span class="room-no">' + escapeHtml(r.room) + '</span><span class="room-type">' + escapeHtml(r.roomType) + '</span>' +
+          (e.ov ? '<span class="manual-badge">✓</span>' : (e.t120entry ? '<span class="t120-badge">T120</span>' : '')) +
+          (e.ckin ? '<span class="manual-badge">CKIN</span>' : '') + '<br>' +
+          '<span class="status-tag ' + statusClass + '">' + escapeHtml(STATUS_LABEL[e.effStatus] || e.effStatus || "?") + '</span>' +
+          (e.guestName ? '<div class="guest">' + escapeHtml(e.guestName) + '</div>' : '<div class="guest muted">Vacía</div>') +
+          '</div>';
+      });
+      html += '</div></div>';
+    });
+    grid.innerHTML = html;
+  }
+
+  document.getElementById("hk-grid").addEventListener("click", (e) => {
+    const card = e.target.closest(".room-card");
+    if(!card) return;
+    const room = card.dataset.room, charD = card.dataset.chard;
+    const rowData = state.rooms.find(r => r.room === room && r.charD === charD);
+    if(!rowData) return;
+    openRoomModal(room, charD, rowData);
+  });
+
+  // ---------- Render: Avisos ----------
+  let avisosDept = "all";
+  let avisosSearch = "";
+
+  function renderAvisos(){
+    const empty = document.getElementById("avisos-empty");
+    const content = document.getElementById("avisos-content");
+    if(!state.traces.length){
+      empty.style.display="block"; content.style.display="none";
+      document.getElementById("count-avisos").textContent = "";
+      return;
+    }
+    empty.style.display="none"; content.style.display="block";
+    document.getElementById("count-avisos").textContent = "(" + state.traces.length + ")";
+
+    const depts = Array.from(new Set(state.traces.map(t => t.dept))).sort();
+    const chipsEl = document.getElementById("avisos-dept-chips");
+    chipsEl.innerHTML = '<button class="filterchip active" data-dept="all">Todos</button>' +
+      depts.map(d => '<button class="filterchip" data-dept="' + escapeHtml(d) + '">' + escapeHtml(d) + '</button>').join("");
+    chipsEl.querySelectorAll("[data-dept]").forEach(b => {
+      b.addEventListener("click", () => {
+        chipsEl.querySelectorAll("[data-dept]").forEach(x=>x.classList.remove("active"));
+        b.classList.add("active");
+        avisosDept = b.dataset.dept;
+        drawAvisos();
+      });
+    });
+
+    drawAvisos();
+  }
+
+  function drawAvisos(){
+    avisosSearch = (document.getElementById("avisos-search").value || "").toLowerCase().trim();
+    let rows = state.traces.slice();
+    if(avisosDept !== "all") rows = rows.filter(t => t.dept === avisosDept);
+    if(avisosSearch){
+      rows = rows.filter(t =>
+        (t.room||"").toLowerCase().includes(avisosSearch) ||
+        (t.guest||"").toLowerCase().includes(avisosSearch) ||
+        (t.text||"").toLowerCase().includes(avisosSearch)
+      );
+    }
+    rows.sort((a,b) => {
+      if(!a.room && b.room) return 1;
+      if(a.room && !b.room) return -1;
+      return (a.room||"").localeCompare(b.room||"", undefined, {numeric:true});
+    });
+
+    document.getElementById("avisos-summary").innerHTML = "<b>" + rows.length + "</b> avisos" + (avisosDept!=="all" ? " · departamento <b>"+escapeHtml(avisosDept)+"</b>" : "");
+
+    const list = document.getElementById("avisos-list");
+    if(!rows.length){
+      list.innerHTML = '<div class="empty-state">Sin avisos para ese filtro.</div>';
+      return;
+    }
+    list.innerHTML = rows.map(t => {
+      return '<div class="trace-card">' +
+        '<div class="trace-head">' +
+          '<span>' + (t.room ? '<span class="trace-room">'+escapeHtml(t.room)+'</span> · ' : '') + '<span class="trace-guest">' + escapeHtml(t.guest || "—") + '</span>' + (t.vip ? ' <span class="badge badge-vip">'+escapeHtml(t.vip)+'</span>' : '') + '</span>' +
+          '<span class="trace-dept">' + escapeHtml(t.dept) + '</span>' +
+        '</div>' +
+        '<div class="trace-dates">Llegada ' + escapeHtml(t.arrival||"—") + ' · Salida ' + escapeHtml(t.departure||"—") + (t.roomType ? " · "+escapeHtml(t.roomType) : "") + '</div>' +
+        '<div class="trace-text">' + escapeHtml(t.text) + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  document.getElementById("avisos-search").addEventListener("input", drawAvisos);
+
+  function tracesForResvNameId(resvNameId){
+    if(!resvNameId) return [];
+    return state.traces.filter(t => t.resvNameId === resvNameId);
+  }
+
+  function traceBadge(resvNameId){
+    const matches = tracesForResvNameId(resvNameId);
+    if(!matches.length) return "";
+    const preview = matches.map(t => t.text).join(" · ");
+    return '<span class="trace-badge" title="' + escapeHtml(preview) + '">📋' + (matches.length>1 ? " "+matches.length : "") + '</span>';
+  }
+
+  // ---------- Resumen de turno / traspaso ----------
+  function listOrNone(items){
+    if(!items.length) return '<div class="shift-none">Ninguna.</div>';
+    return '<ul>' + items.map(t => '<li>' + t + '</li>').join("") + '</ul>';
+  }
+
+  function buildShiftSummary(){
+    const today = todayCharD();
+    let html = "";
+
+    if(state.rooms.length){
+      const dayRows = state.rooms.filter(r => r.charD === today);
+      const hasT120 = Object.keys(state.t120).length > 0;
+      const counts = {CL:0, DI:0, IP:0, PU:0, OS:0, BL:0};
+      const manualList = [], ckinList = [];
+      dayRows.forEach(r => {
+        const ov = state.overrides[overrideKey(r.room, r.charD)];
+        const t120entry = hasT120 ? state.t120[r.room] : null;
+        const effStatus = ov ? ov.status : (t120entry ? t120entry.status : r.status);
+        if(counts[effStatus]!==undefined) counts[effStatus]++;
+        if(ov) manualList.push(escapeHtml(r.room) + " → " + escapeHtml(STATUS_LABEL[ov.status]||ov.status) + (ov.note ? " — " + escapeHtml(ov.note) : ""));
+        const ckin = state.checkins[overrideKey(r.room, r.charD)];
+        if(ckin) ckinList.push(escapeHtml(r.room) + " — " + escapeHtml(ckin.guest));
+      });
+      html += "<h4>Habitaciones hoy (" + escapeHtml(today||"—") + ")</h4>" +
+        "<div>" + Object.keys(STATUS_LABEL).map(k => STATUS_LABEL[k]+": <b>"+(counts[k]||0)+"</b>").join(" · ") + "</div>";
+      html += "<h4>Cambiadas a mano</h4>" + listOrNone(manualList);
+      html += "<h4>Check-in de contingencia hecho</h4>" + listOrNone(ckinList);
+    }
+
+    if(state.arrivals.length){
+      const unassigned = state.arrivals.filter(a=>!a.room).map(a => escapeHtml(a.guest) + " (" + escapeHtml(a.roomType) + ")");
+      const pending = state.arrivals.filter(a=>a.room && !a.checkedIn).map(a => escapeHtml(a.room) + " — " + escapeHtml(a.guest));
+      html += "<h4>Llegadas · sin asignar</h4>" + listOrNone(unassigned);
+      html += "<h4>Llegadas · asignadas, pendientes de check-in</h4>" + listOrNone(pending);
+    }
+
+    if(state.departures.length){
+      const withBalance = state.departures.filter(d=>parseFloat(d.balance||"0")!==0).map(d => escapeHtml(d.room) + " — " + escapeHtml(d.guest) + " (" + parseFloat(d.balance).toFixed(2) + " €)");
+      const notCheckedIn = state.departures.filter(d=>d.resvStatus!=="CHECKED IN").map(d => escapeHtml(d.room) + " — " + escapeHtml(d.guest));
+      html += "<h4>Salidas · con balance pendiente</h4>" + listOrNone(withBalance);
+      html += "<h4>Salidas · sin check-in registrado</h4>" + listOrNone(notCheckedIn);
+    }
+
+    if(state.traces.length){
+      const byDept = {};
+      state.traces.forEach(t => { byDept[t.dept] = (byDept[t.dept]||0) + 1; });
+      html += "<h4>Avisos abiertos</h4><div>" + Object.keys(byDept).sort().map(d => escapeHtml(d)+": <b>"+byDept[d]+"</b>").join(" · ") + "</div>";
+    }
+
+    if(!html) html = '<div class="shift-none">Todavía no has cargado ningún fichero.</div>';
+    return html;
+  }
+
+  document.getElementById("shift-summary-btn").addEventListener("click", () => {
+    document.getElementById("shift-modal-sub").textContent = "Generado " + new Date().toLocaleString("es-ES");
+    document.getElementById("shift-modal-body").innerHTML = buildShiftSummary();
+    document.getElementById("shift-modal").classList.add("open");
+  });
+  document.getElementById("shift-cancel").addEventListener("click", () => document.getElementById("shift-modal").classList.remove("open"));
+  document.getElementById("shift-print").addEventListener("click", () => window.print());
+  document.getElementById("shift-modal").addEventListener("click", (e) => {
+    if(e.target === document.getElementById("shift-modal")) document.getElementById("shift-modal").classList.remove("open");
+  });
+
+  // ---------- Copia de seguridad ----------
+  document.getElementById("export-backup").addEventListener("click", () => {
+    const payload = JSON.stringify({app:"panel-contingencia", version:1, rooms:state.rooms, arrivals:state.arrivals, departures:state.departures,
+      overrides:state.overrides, t120:state.t120, checkins:state.checkins, traces:state.traces, dateFmt:state.dateFmt,
+      files:state.files, savedAt:new Date().toISOString()});
+    const blob = new Blob([payload], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "contingencia-backup-" + new Date().toISOString().slice(0,16).replace(/[:T]/g,"") + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("Copia descargada. Contiene datos de huéspedes: guárdala en un lugar seguro.", "warn");
+  });
+
+  document.getElementById("import-backup").addEventListener("change", function(){
+    const file = this.files[0];
+    const input = this;
+    if(!file) return;
+    readFileText(file).then(text => {
+      try{
+        const data = JSON.parse(text);
+        if(!data || typeof data !== "object" || data.app !== "panel-contingencia") throw new Error("no es una copia de este programa");
+        state.rooms = data.rooms || [];
+        state.arrivals = data.arrivals || [];
+        state.departures = data.departures || [];
+        state.overrides = data.overrides || {};
+        state.t120 = data.t120 || {};
+        state.checkins = data.checkins || {};
+        state.traces = data.traces || [];
+        state.files = data.files || {};
+        state.dateFmt = data.dateFmt || {order:"DMY", sep:"-", yl:2};
+        state.activeDay = null;
+        state.demo = false;
+        renderAll();
+        closeAllModals();
+        toast("Copia importada.", "");
+      }catch(e){
+        toast("No se pudo leer la copia de seguridad: " + e.message, "err");
+      }
+      input.value = "";
+    }).catch(() => toast("No se pudo leer el fichero.", "err"));
+  });
+
+  // ---------- Guía de informes ----------
+  function openGuide(){
+    document.getElementById("guide-list").innerHTML = REPORT_ORDER.map(type => {
+      const r = REPORTS[type];
+      return '<div class="guide-item"><h4>' + escapeHtml(r.title) +
+        '<span class="tagreq ' + (r.req ? "req" : "opt") + '">' + (r.req ? "necesario" : "opcional") + '</span></h4>' +
+        escapeHtml(r.what) + '<br><span class="muted">' + escapeHtml(r.hint) + '</span><br>' +
+        'Columnas que usa: <code>' + escapeHtml(r.cols) + '</code></div>';
+    }).join("");
+    document.getElementById("guide-modal").classList.add("open");
+  }
+  document.getElementById("btn-guide").addEventListener("click", openGuide);
+  document.getElementById("guide-close").addEventListener("click", () => document.getElementById("guide-modal").classList.remove("open"));
+
+  // ---------- Datos y ajustes ----------
+  function openSettings(){
+    document.querySelectorAll('input[name="ready"]').forEach(r => { r.checked = r.value === state.settings.ready; });
+    document.getElementById("app-version").textContent = APP_VERSION;
+    document.getElementById("settings-modal").classList.add("open");
+  }
+  document.getElementById("btn-settings").addEventListener("click", openSettings);
+  document.getElementById("settings-close").addEventListener("click", () => document.getElementById("settings-modal").classList.remove("open"));
+  document.querySelectorAll('input[name="ready"]').forEach(r => {
+    r.addEventListener("change", () => {
+      if(!r.checked) return;
+      state.settings.ready = r.value;
+      saveSettings();
+      renderAll();
+      toast("Criterio actualizado: «" + readyLabel() + "».", "");
+    });
+  });
+  document.getElementById("btn-clear").addEventListener("click", () => {
+    if(!hasAnyData() && !hasManualWork()){ toast("No hay datos cargados.", ""); return; }
+    if(!window.confirm("¿Borrar todos los informes cargados y los cambios hechos en contingencia? Esta acción no se puede deshacer.")) return;
+    clearAll();
+    closeAllModals();
+    toast("Datos borrados de la memoria del navegador.", "");
+  });
+
+  // ---------- Modales: cerrar con clic fuera y con Esc ----------
+  function closeAllModals(){
+    document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  }
+  ["guide-modal","settings-modal"].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener("click", e => { if(e.target === el) el.classList.remove("open"); });
+  });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeAllModals(); });
+
+  // Aviso antes de cerrar la pestaña si hay trabajo hecho a mano
+  window.addEventListener("beforeunload", e => {
+    if(!state.demo && hasManualWork()){ e.preventDefault(); e.returnValue = ""; }
+  });
+
+  // ---------- Datos de ejemplo (ficticios) ----------
+  function loadDemo(){
+    clearAll();
+    state.demo = true;
+    state.dateFmt = {order:"DMY", sep:"-", yl:2};
+    let seed = 20240607;
+    const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    const pick = arr => arr[Math.floor(rnd() * arr.length)];
+    const SURN = ["García","Martín","López","Sánchez","Fernández","Ruiz","Moreno","Romero","Navarro","Torres","Vidal","Castro","Ortega","Silva","Costa","Rossi","Schmidt","Dubois","Smith","Jansen","Novak","Lund","Keller","Haas"];
+    const FIRST = ["Ana","Luis","Marta","Pablo","Elena","Jorge","Lucía","Sergio","Nuria","Iván","Clara","Hugo","Inés","Mateo","Julia","Pedro"];
+    const TYPES = ["DBL","DBL","TWN","STE"];
+    const DAYNAMES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const base = new Date(); base.setHours(0,0,0,0);
+    const dayStr = off => { const d = new Date(base); d.setDate(d.getDate() + off); return dateToDMY(d); };
+    const dayName = off => { const d = new Date(base); d.setDate(d.getDate() + off); return DAYNAMES[d.getDay()]; };
+
+    const rooms = [];
+    for(let f = 1; f <= 4; f++) for(let n = 1; n <= 10; n++) rooms.push({no: String(f * 100 + n), type: f === 4 && n > 8 ? "STE" : (n % 3 === 0 ? "TWN" : "DBL")});
+    const stays = {};        // room -> {start,end,guest,arrAssigned}
+    const departuresToday = [];
+    rooms.forEach((r, i) => {
+      const roll = rnd();
+      const guest = pick(SURN) + ", " + pick(FIRST);
+      if(roll < 0.22){            // sale hoy
+        stays[r.no] = {start:-(1 + Math.floor(rnd()*3)), end:0, guest, inh:true};
+        departuresToday.push(r.no);
+      } else if(roll < 0.55){     // en casa, sigue
+        stays[r.no] = {start:-(Math.floor(rnd()*3)) - 1, end:1 + Math.floor(rnd()*4), guest, inh:true};
+      }
+    });
+    // llegadas de hoy: algunas ya con habitación (la ocupan en el plano), otras sin asignar
+    const free = rooms.filter(r => !stays[r.no]);
+    const arrivals = [];
+    const nArr = 12;
+    let seq = 0;
+    for(let i = 0; i < nArr; i++){
+      const assigned = i < 4 && free.length > 8;
+      const stayLen = 1 + Math.floor(rnd() * 4);
+      let room = "";
+      if(assigned){
+        const r = free.shift();
+        room = r.no;
+        stays[r.no] = {start:0, end:stayLen, guest:null, inh:false, arrIdx:i};
+      }
+      const rt = assigned ? rooms.find(x => x.no === room).type : pick(TYPES);
+      arrivals.push({
+        room, guest: pick(SURN) + ", " + pick(FIRST), arrivalTime: pick(["12:00","14:30","16:00","18:45","21:10"]),
+        arrival: dayStr(0), departure: dayStr(stayLen), roomType: rt,
+        adults: String(1 + Math.floor(rnd()*2)), children: rnd() < 0.2 ? "1" : "0",
+        vip: i === 2 ? "V2" : (i === 9 ? "V1" : ""), company: i % 5 === 1 ? "Empresa Demo SL" : "", group: i % 7 === 3 ? "Grupo Demo" : "",
+        guarantee: pick(["CC","DEP","CO"]), confirmation: String(900100 + i),
+        specialRequests: i === 5 ? "Cuna en la habitación" : (i === 8 ? "Llegada tardía" : ""),
+        blockCode: "", resvNameId: "DEMO" + (1000 + i), assignedManually: false, checkedIn: false
+      });
+    }
+    arrivals.forEach((a, i) => { const st = stays[a.room]; if(st && st.arrIdx === i) st.guest = a.guest; });
+
+    // plano de habitaciones: 4 días
+    const planRows = [];
+    const statusToday = {};
+    rooms.forEach(r => {
+      const st = stays[r.no];
+      let status;
+      if(st && st.inh) status = pick(["DI","CL","CL"]);
+      else if(st) status = "IP";
+      else status = pick(["IP","IP","CL","DI","PU"]);
+      statusToday[r.no] = status;
+    });
+    statusToday["110"] = "OS"; statusToday["409"] = "OS";
+    for(let d = 0; d < 4; d++){
+      rooms.forEach(r => {
+        const st = stays[r.no];
+        let guest = "", inHouse = false;
+        if(st && ((d >= st.start && d < st.end) || (d === 0 && st.end === 0))){
+          guest = st.guest; inHouse = !!st.inh && d === 0;
+        }
+        planRows.push({room:r.no, roomType:r.type, status:statusToday[r.no], oraDate:"", charD:dayStr(d), day:dayName(d), inHouse, guest});
+      });
+    }
+    state.rooms = planRows;
+
+    // estado real (T120): casi igual, con algunos cambios respecto al plano
+    const t = {};
+    rooms.forEach(r => { t[r.no] = {status: statusToday[r.no], blocked:false, roomType:r.type}; });
+    const vac = rooms.filter(r => !stays[r.no]);
+    if(vac[0]) t[vac[0].no].status = "IP";
+    if(vac[1]) t[vac[1].no].status = "IP";
+    t["110"].status = "OS"; t["409"] = {status:"BL", blocked:true, roomType:"STE"};
+    state.t120 = t;
+    state.arrivals = arrivals;
+
+    state.departures = departuresToday.map((no, i) => {
+      const st = stays[no];
+      return {room:no, guest:st.guest, nights:String(-st.start), arrival:dayStr(st.start), balance: i % 3 === 0 ? String((50 + i * 17.5).toFixed(2)) : "0",
+        resvStatus:"CHECKED IN", computedStatus:"DUE OUT", vip:"", company: i % 4 === 1 ? "Empresa Demo SL" : "", group:"",
+        roomType: rooms.find(x => x.no === no).type, checkedOut:false};
+    });
+
+    const D = {FO:"Recepción", HK:"Housekeeping", FB:"Comidas y bebidas", ENG:"Mantenimiento"};
+    state.traces = [
+      {room:"", guest:arrivals[2].guest, vip:"V2", arrival:dayStr(0), departure:arrivals[2].departure, text:"Cliente VIP: bienvenida con detalle de cortesía.", traceId:"1", roomType:arrivals[2].roomType, dept:D.FO, resvNameId:arrivals[2].resvNameId},
+      {room:"", guest:arrivals[5].guest, vip:"", arrival:dayStr(0), departure:arrivals[5].departure, text:"Preparar cuna antes de la llegada.", traceId:"2", roomType:arrivals[5].roomType, dept:D.HK, resvNameId:arrivals[5].resvNameId},
+      {room:"", guest:arrivals[8].guest, vip:"", arrival:dayStr(0), departure:arrivals[8].departure, text:"Llegada tardía: dejar llave en recepción nocturna.", traceId:"3", roomType:arrivals[8].roomType, dept:D.FO, resvNameId:arrivals[8].resvNameId},
+      {room:"", guest:arrivals[0].guest, vip:"", arrival:dayStr(0), departure:arrivals[0].departure, text:"Alergia a las plumas: ropa de cama sintética.", traceId:"4", roomType:arrivals[0].roomType, dept:D.HK, resvNameId:arrivals[0].resvNameId},
+      {room:"110", guest:"", vip:"", arrival:dayStr(0), departure:dayStr(3), text:"Avería de aire acondicionado pendiente de revisar.", traceId:"5", roomType:"DBL", dept:D.ENG, resvNameId:""}
+    ];
+    state.files = {};
+    renderAll();
+    showTab("panel-rooms");
+    toast("Datos de ejemplo cargados. Pruébalo: toca una llegada sin asignar para asignarle habitación.", "");
+  }
+  document.getElementById("btn-demo").addEventListener("click", loadDemo);
+  document.getElementById("btn-exit-demo").addEventListener("click", () => { clearAll(); toast("Ejemplo cerrado.", ""); });
+
+  refreshPills();
+
+})();
+</script>
+</body>
+</html>
